@@ -27,7 +27,7 @@ from models import *
 from util import *
 
 
-def train(train_loader, net, criterion, optimizer, epoch, device):
+def train_step(train_loader, net, criterion, optimizer, epoch, device):
     global writer
 
     start = time.time()
@@ -50,7 +50,14 @@ def train(train_loader, net, criterion, optimizer, epoch, device):
                 criterion, outputs, targets_a, targets_b, lam)
         else:
             outputs = net(inputs)
-            loss = criterion(outputs, targets)
+            if isinstance(outputs, tuple):
+                # losses for multi classifier
+                losses = list(map(criterion, outputs, [targets] * len(outputs)))
+                losses = list(map(lambda x, y: x * y, config.classifier_weight, losses))
+                loss = sum(losses[:config.num_classifier])
+                outputs = outputs[0]
+            else:
+                loss = criterion(outputs, targets)
 
         # zero the gradient buffers
         optimizer.zero_grad()
@@ -104,6 +111,8 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
         for batch_index, (inputs, targets) in enumerate(test_loader):
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = net(inputs)
+            if isinstance(outputs, tuple):
+                outputs = outputs[0]
             loss = criterion(outputs, targets)
 
             test_loss += loss.item()
@@ -132,7 +141,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
         best_prec = acc
 
 
-def main(work_path, resume = False):
+def start_training(work_path, resume = False):
     global args, writer, logger, config, last_epoch, best_prec
     args = EasyDict({'work_path': work_path, 'resume': resume})
     writer = SummaryWriter(logdir = args.work_path + '/event')
@@ -162,9 +171,14 @@ def main(work_path, resume = False):
 
     # define loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), config.lr_scheduler.base_lr,
-                          momentum = config.optimize.momentum,
-                          weight_decay = config.optimize.weight_decay, nesterov = config.optimize.nesterov)
+    if config.optimize.type == 'SGD':
+        optimizer = optim.SGD(net.parameters(), config.lr_scheduler.base_lr,
+                              momentum = config.optimize.momentum,
+                              weight_decay = config.optimize.weight_decay,
+                              nesterov = config.optimize.nesterov)
+    elif config.optimize.type == 'Adam':
+        optimizer = optim.Adam(net.parameters(), config.lr_scheduler.base_lr,
+                               weight_decay = config.optimize.weight_decay)
 
     # resume from a checkpoint
     last_epoch = -1
@@ -188,11 +202,11 @@ def main(work_path, resume = False):
     for epoch in range(last_epoch + 1, config.epochs):
         lr = adjust_learning_rate(optimizer, epoch, config)
         writer.add_scalar('learning_rate', lr, epoch)
-        train(train_loader, net, criterion, optimizer, epoch, device)
+        train_step(train_loader, net, criterion, optimizer, epoch, device)
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)
     logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
 
 
 if __name__ == "__main__":
-    main('./experience/alexnet/cifar10', True)
+    start_training('./experience/inception_v1/cifar10', False)

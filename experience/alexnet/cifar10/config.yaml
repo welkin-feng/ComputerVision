@@ -8,7 +8,7 @@ ckpt_name: alexnet_cifar10
 
 # datasets
 num_classes: 10
-dataset: cifar10 
+dataset: cifar10
 
 # training parameters
 use_gpu: True
@@ -21,8 +21,11 @@ workers: 4
 
 # optimizer
 optimize:
-  momentum: 0.9
+  # type: SGD or Adam
+  type: SGD
   weight_decay: 0.005
+  # only for SGD
+  momentum: 0.9
   nesterov: True
 
 # regularization
@@ -40,10 +43,10 @@ augmentation:
 # learning rate scheduler
 lr_scheduler:
   # type: STEP or COSINE or HTD
-  type: STEP    
+  type: STEP
   base_lr: 0.01
   # only for STEP
-  lr_epochs: [100, 150, 200] 
+  lr_epochs: [100, 150, 200]
   lr_mults: 0.1
   # for HTD and COSINE
   min_lr: 0.0

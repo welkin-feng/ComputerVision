@@ -1,28 +1,35 @@
 # net architecture
-architecture: alexnet_cifar10
+architecture: inception_v1_cifar10
 
 # log and checkpoint
 data_path: ./data
 ckpt_path: ./
-ckpt_name: alexnet_cifar10
+ckpt_name: inception_v1_cifar10
 
 # datasets
 num_classes: 10
-dataset: cifar10 
+dataset: cifar10
 
 # training parameters
 use_gpu: True
 input_size: 32
 epochs: 250
-batch_size: 128
+batch_size: 64
 test_batch: 200
 eval_freq: 2
 workers: 4
 
+# multi classifiers used during training
+num_classifier: 3
+classifier_weight: [1., 0.3, 0.3]
+
 # optimizer
 optimize:
-  momentum: 0.9
+  # type: SGD or Adam
+  type: Adam
   weight_decay: 0.005
+  # only for SGD
+  momentum: 0.9
   nesterov: True
 
 # regularization
@@ -40,11 +47,11 @@ augmentation:
 # learning rate scheduler
 lr_scheduler:
   # type: STEP or COSINE or HTD
-  type: STEP    
-  base_lr: 0.01
+  type: STEP
+  base_lr: 0.1
   # only for STEP
-  lr_epochs: [100, 150, 200] 
-  lr_mults: 0.1
+  lr_epochs: [8 * i for i in range(50)]
+  lr_mults: 0.96
   # for HTD and COSINE
   min_lr: 0.0
   # only for HTD

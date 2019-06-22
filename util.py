@@ -65,8 +65,8 @@ class Logger(object):
         self.__logger.setLevel(log_level)
         file_handler = logging.FileHandler(log_file_name)
         console_handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '[%(asctime)s] - [%(filename)s line:%(lineno)d] : %(message)s')
+        # formatter = logging.Formatter('[%(asctime)s] - [%(filename)s line:%(lineno)d] : %(message)s')
+        formatter = logging.Formatter('[%(asctime)s] - [%(filename)s] : %(message)s')
         file_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
         self.__logger.addHandler(file_handler)
@@ -120,7 +120,7 @@ def load_checkpoint(path, model, optimizer = None):
         checkpoint = torch.load(path)
         model.load_state_dict(checkpoint['state_dict'], strict = False)
 
-        if optimizer != None:
+        if optimizer is not None:
             best_prec = checkpoint['best_prec']
             last_epoch = checkpoint['last_epoch']
             optimizer.load_state_dict(checkpoint['optimizer'])

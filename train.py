@@ -159,10 +159,10 @@ def main():
     logger.info(" == total parameters: " + str(count_parameters(net)))
 
     # CPU or GPU
-    device = 'cuda' if config.use_gpu else 'cpu'
+    device = 'cuda' if config.use_gpu and torch.cuda.is_available() else 'cpu'
     # data parallel for multiple-GPU
     if device == 'cuda':
-        net = torch.nn.DataParallel(net)
+        net = nn.DataParallel(net)
         cudnn.benchmark = True
 
     net.to(device)

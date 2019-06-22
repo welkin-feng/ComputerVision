@@ -73,24 +73,24 @@ class AlexNet_cifar10(nn.Module):
         """ Constructor for AlexNet """
         super().__init__()
 
-        mid_size = in_size / 8
+        mid_size = int((in_size + 23) / 24)
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 96, kernel_size = 11, stride = 4, padding = 5),
+            nn.Conv2d(3, 96, kernel_size = 11, stride = 3, padding = 5),
             nn.ReLU(inplace = True),
             nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
             nn.Conv2d(96, 256, kernel_size = 5, stride = 1, padding = 2),
             nn.ReLU(inplace = True),
             nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
             nn.Conv2d(256, 384, kernel_size = 3, stride = 1, padding = 1),
             nn.ReLU(inplace = True),
             nn.Conv2d(384, 384, kernel_size = 3, stride = 1, padding = 1),
             nn.ReLU(inplace = True),
             nn.Conv2d(384, 256, kernel_size = 3, stride = 1, padding = 1),
             nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
         )
         self.fc = nn.Sequential(
             nn.Linear(256 * mid_size ** 2, 4096),

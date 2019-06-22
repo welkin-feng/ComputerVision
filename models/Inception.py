@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['Inception_v1']
+__all__ = ['inception_v1', 'inception_v1_cifar10']
 
 
 class Flatten(nn.Module):
@@ -71,10 +71,18 @@ class Inception_Module(nn.Module):
 class Inception_v1(nn.Module):
     """  """
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, in_size = 224):
         """ Constructor for Inception """
         super().__init__()
-        self.conv_1 = Conv2d_relu(3, 64, kernel_size = 7, stride = 2, padding = 3)
+
+        if in_size >= 65:
+            mid_size = int((int((in_size + 15) / 16) - 2) / 3)
+            final_size = int((in_size + 31) / 32)
+            self.conv_1 = Conv2d_relu(3, 64, kernel_size = 7, stride = 2, padding = 3)
+        else:
+            mid_size = int(int((in_size + 7) / 8) - 1)
+            final_size = int((in_size + 15) / 16)
+            self.conv_1 = Conv2d_relu(3, 64, kernel_size = 7, stride = 1, padding = 3)
         self.maxpool_1 = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         self.conv_2_1 = Conv2d_relu(64, 64, kernel_size = 1, stride = 1)
         self.conv_2_2 = Conv2d_relu(64, 192, kernel_size = 3, stride = 2, padding = 1)
@@ -84,11 +92,14 @@ class Inception_v1(nn.Module):
         self.maxpool_3 = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         self.inception_4a = Inception_Module(480, 192, 96, 208, 16, 48, 64)
         # auxiliary classifier 1
+        if in_size >= 65:
+            self.avgpool_4a = nn.AvgPool2d(kernel_size = 5, stride = 3)
+        else:
+            self.avgpool_4a = nn.AvgPool2d(kernel_size = 2, stride = 1)
         self.auxiliary_classifier_1 = nn.Sequential(
-            nn.AvgPool2d(kernel_size = 5, stride = 3),
             Conv2d_relu(512, 128, kernel_size = 1, stride = 1),
             Flatten(),
-            nn.Linear(4 * 4 * 128, 1024), nn.ReLU(inplace = True),
+            nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),
             nn.Linear(1024, num_classes)
         )
@@ -96,11 +107,14 @@ class Inception_v1(nn.Module):
         self.inception_4c = Inception_Module(512, 128, 128, 256, 24, 64, 64)
         self.inception_4d = Inception_Module(512, 112, 144, 288, 32, 64, 64)
         # auxiliary classifier 2
+        if in_size >= 65:
+            self.avgpool_4d = nn.AvgPool2d(kernel_size = 5, stride = 3)
+        else:
+            self.avgpool_4d = nn.AvgPool2d(kernel_size = 2, stride = 1)
         self.auxiliary_classifier_2 = nn.Sequential(
-            nn.AvgPool2d(kernel_size = 5, stride = 3),
             Conv2d_relu(528, 128, kernel_size = 1, stride = 1),
             Flatten(),
-            nn.Linear(4 * 4 * 128, 1024), nn.ReLU(inplace = True),
+            nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),
             nn.Linear(1024, num_classes)
         )
@@ -110,7 +124,7 @@ class Inception_v1(nn.Module):
         self.inception_5b = Inception_Module(832, 384, 192, 384, 48, 128, 128)
         # classifier
         self.classifier = nn.Sequential(
-            nn.AvgPool2d(kernel_size = 7, stride = 1),
+            nn.AvgPool2d(kernel_size = final_size, stride = 1),
             Flatten(),
             nn.Dropout(0.4),
             nn.Linear(1024, num_classes)
@@ -131,12 +145,14 @@ class Inception_v1(nn.Module):
         output = self.maxpool_3(output)
         output = self.inception_4a(output)
         if self.training:
-            output1 = self.auxiliary_classifier_1(output)
+            output1 = self.avgpool_4a(output)
+            output1 = self.auxiliary_classifier_1(output1)
         output = self.inception_4b(output)
         output = self.inception_4c(output)
         output = self.inception_4d(output)
         if self.training:
-            output2 = self.auxiliary_classifier_2(output)
+            output2 = self.avgpool_4d(output)
+            output2 = self.auxiliary_classifier_2(output2)
         output = self.inception_4e(output)
         output = self.maxpool_4(output)
         output = self.inception_5a(output)
@@ -159,3 +175,11 @@ class Inception_v1(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+
+
+def inception_v1(num_classes):
+    return Inception_v1(num_classes)
+
+
+def inception_v1_cifar10(num_classes):
+    return Inception_v1(num_classes, in_size = 32)

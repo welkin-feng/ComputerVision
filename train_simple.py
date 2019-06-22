@@ -26,12 +26,14 @@ from easydict import EasyDict
 from models import *
 from util import *
 
-parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
-parser.add_argument('--work-path', required = True, type = str)
-parser.add_argument('--resume', action = 'store_true',
-                    help = 'resume from checkpoint')
 
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
+# parser.add_argument('--work-path', required = True, type = str)
+# parser.add_argument('--resume', action = 'store_true',
+#                     help = 'resume from checkpoint')
+
+
+# args = parser.parse_args()
 
 
 # logger = Logger(log_file_name = args.work_path + '/log.txt',
@@ -142,8 +144,11 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
         best_prec = acc
 
 
-def main():
+def main(work_path, resume = False):
     global args, config, last_epoch, best_prec, writer
+
+    args = EasyDict({'work_path': work_path, 'resume': resume})
+
     writer = SummaryWriter(logdir = args.work_path + '/event')
 
     # read config from yaml file
@@ -204,5 +209,4 @@ def main():
 
 
 if __name__ == "__main__":
-    args = parser.parse_args(['--work-path', ''])
-    main()
+    main('./experience/alexnet/cifar10', True)

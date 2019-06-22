@@ -27,10 +27,6 @@ from models import *
 from util import *
 
 
-logger = Logger(log_file_name = args.work_path + '/log.txt',
-                log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
-
-
 def train(train_loader, net, criterion, optimizer, epoch, device):
     global writer
 
@@ -147,9 +143,11 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
 
 def main(work_path, resume = False):
-    global args, config, last_epoch, best_prec, writer
+    global args, writer, logger, config, last_epoch, best_prec
     args = EasyDict({'work_path': work_path, 'resume': resume})
     writer = SummaryWriter(logdir = args.work_path + '/event')
+    logger = Logger(log_file_name = args.work_path + '/log.txt',
+                    log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
 
     # read config from yaml file
     with open(args.work_path + '/config.yaml') as f:

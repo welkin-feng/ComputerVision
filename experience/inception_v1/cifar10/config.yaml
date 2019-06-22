@@ -14,7 +14,7 @@ dataset: cifar10
 use_gpu: True
 input_size: 32
 epochs: 250
-batch_size: 64
+batch_size: 128
 test_batch: 200
 eval_freq: 2
 workers: 4
@@ -48,7 +48,7 @@ augmentation:
 lr_scheduler:
   # type: STEP or COSINE or HTD
   type: STEP
-  base_lr: 0.1
+  base_lr: 0.01
   # only for STEP
   lr_epochs: [8 * i for i in range(50)]
   lr_mults: 0.96

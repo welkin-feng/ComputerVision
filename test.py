@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # model = ThreeLayerConvNet(in_channel = 3, channel_1 = 12)
     # test_ConvNet(model, x_shape)
     from models import *
-    config = EasyDict({'architecture': 'AlexNet', 'num_classes': 10})
+    config = EasyDict({'architecture': 'inception_v1', 'num_classes': 10})
     model = get_model(config)
     # test_ConvNet(model, x_shape)
     x = torch.ones(x_shape)

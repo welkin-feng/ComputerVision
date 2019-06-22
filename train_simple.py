@@ -11,9 +11,9 @@ File Name:  train_simple.py
 __author__ = 'Welkin'
 __date__ = '2019/6/21 03:10'
 
-import argparse
 import time
 import yaml
+import logging
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -27,17 +27,8 @@ from models import *
 from util import *
 
 
-# parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
-# parser.add_argument('--work-path', required = True, type = str)
-# parser.add_argument('--resume', action = 'store_true',
-#                     help = 'resume from checkpoint')
-
-
-# args = parser.parse_args()
-
-
-# logger = Logger(log_file_name = args.work_path + '/log.txt',
-#                 log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
+logger = Logger(log_file_name = args.work_path + '/log.txt',
+                log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
 
 
 def train(train_loader, net, criterion, optimizer, epoch, device):
@@ -49,6 +40,7 @@ def train(train_loader, net, criterion, optimizer, epoch, device):
     train_loss = 0
     correct = 0
     total = 0
+    logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
     print(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
 
     for batch_index, (inputs, targets) in enumerate(train_loader):
@@ -83,15 +75,22 @@ def train(train_loader, net, criterion, optimizer, epoch, device):
             correct += predicted.eq(targets).sum().item()
 
         if (batch_index + 1) % 100 == 0:
+            logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
+                batch_index + 1, len(train_loader),
+                train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
             print("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
                 batch_index + 1, len(train_loader),
                 train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
 
+    logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
+        batch_index + 1, len(train_loader),
+        train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
     print("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
         batch_index + 1, len(train_loader),
         train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
 
     end = time.time()
+    logger.info("   == cost time: {:.4f}s".format(end - start))
     print("   == cost time: {:.4f}s".format(end - start))
     train_loss = train_loss / (batch_index + 1)
     train_acc = correct / total
@@ -111,6 +110,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
     correct = 0
     total = 0
 
+    logger.info(" === Validate ===".format(epoch + 1, config.epochs))
     print(" === Validate ===".format(epoch + 1, config.epochs))
 
     with torch.no_grad():
@@ -124,6 +124,8 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
+    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
+        test_loss / (batch_index + 1), 100.0 * correct / total))
     print("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
         test_loss / (batch_index + 1), 100.0 * correct / total))
     test_loss = test_loss / (batch_index + 1)
@@ -146,9 +148,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
 def main(work_path, resume = False):
     global args, config, last_epoch, best_prec, writer
-
     args = EasyDict({'work_path': work_path, 'resume': resume})
-
     writer = SummaryWriter(logdir = args.work_path + '/event')
 
     # read config from yaml file
@@ -156,11 +156,14 @@ def main(work_path, resume = False):
         config = yaml.load(f)
     # convert to dict
     config = EasyDict(config)
+    logger.info(config)
     print(config)
 
     # define netowrk
     net = get_model(config)
+    logger.info(net)
     print(net)
+    logger.info(" == total parameters: " + str(count_parameters(net)))
     print(" == total parameters: " + str(count_parameters(net)))
 
     # CPU or GPU
@@ -174,7 +177,6 @@ def main(work_path, resume = False):
 
     # define loss and optimizer
     criterion = nn.CrossEntropyLoss()
-
     optimizer = optim.SGD(net.parameters(), config.lr_scheduler.base_lr,
                           momentum = config.optimize.momentum,
                           weight_decay = config.optimize.weight_decay, nesterov = config.optimize.nesterov)
@@ -197,7 +199,7 @@ def main(work_path, resume = False):
 
     train_loader, test_loader = get_data_loader(
         transform_train, transform_test, config)
-
+    logger.info("            =======  Training  =======\n")
     print("            =======  Training  =======\n")
     for epoch in range(last_epoch + 1, config.epochs):
         lr = adjust_learning_rate(optimizer, epoch, config)
@@ -205,6 +207,7 @@ def main(work_path, resume = False):
         train(train_loader, net, criterion, optimizer, epoch, device)
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)
+    logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
     print("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
 
 

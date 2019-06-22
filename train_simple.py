@@ -37,7 +37,6 @@ def train(train_loader, net, criterion, optimizer, epoch, device):
     correct = 0
     total = 0
     logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
-    print(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
 
     for batch_index, (inputs, targets) in enumerate(train_loader):
         # move tensor to GPU
@@ -74,20 +73,13 @@ def train(train_loader, net, criterion, optimizer, epoch, device):
             logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
                 batch_index + 1, len(train_loader),
                 train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
-            print("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-                batch_index + 1, len(train_loader),
-                train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
 
     logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-        batch_index + 1, len(train_loader),
-        train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
-    print("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
         batch_index + 1, len(train_loader),
         train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
 
     end = time.time()
     logger.info("   == cost time: {:.4f}s".format(end - start))
-    print("   == cost time: {:.4f}s".format(end - start))
     train_loss = train_loss / (batch_index + 1)
     train_acc = correct / total
 
@@ -107,7 +99,6 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
     total = 0
 
     logger.info(" === Validate ===".format(epoch + 1, config.epochs))
-    print(" === Validate ===".format(epoch + 1, config.epochs))
 
     with torch.no_grad():
         for batch_index, (inputs, targets) in enumerate(test_loader):
@@ -122,8 +113,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
     logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
         test_loss / (batch_index + 1), 100.0 * correct / total))
-    print("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
-        test_loss / (batch_index + 1), 100.0 * correct / total))
+
     test_loss = test_loss / (batch_index + 1)
     test_acc = correct / total
     writer.add_scalar('test_loss', test_loss, epoch)
@@ -155,14 +145,11 @@ def main(work_path, resume = False):
     # convert to dict
     config = EasyDict(config)
     logger.info(config)
-    print(config)
 
     # define netowrk
     net = get_model(config)
     logger.info(net)
-    print(net)
     logger.info(" == total parameters: " + str(count_parameters(net)))
-    print(" == total parameters: " + str(count_parameters(net)))
 
     # CPU or GPU
     device = 'cuda' if config.use_gpu and torch.cuda.is_available() else 'cpu'
@@ -198,7 +185,6 @@ def main(work_path, resume = False):
     train_loader, test_loader = get_data_loader(
         transform_train, transform_test, config)
     logger.info("            =======  Training  =======\n")
-    print("            =======  Training  =======\n")
     for epoch in range(last_epoch + 1, config.epochs):
         lr = adjust_learning_rate(optimizer, epoch, config)
         writer.add_scalar('learning_rate', lr, epoch)
@@ -206,7 +192,6 @@ def main(work_path, resume = False):
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)
     logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
-    print("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
 
 
 if __name__ == "__main__":

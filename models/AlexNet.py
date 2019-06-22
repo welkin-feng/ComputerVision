@@ -125,9 +125,9 @@ class AlexNet_cifar10(nn.Module):
                 m.bias.data.zero_()
 
 
-def alexnet(num_classes):
-    return AlexNet(num_classes = num_classes)
+def alexnet(num_classes, in_size):
+    return AlexNet(num_classes, in_size)
 
 
-def alexnet_cifar10(num_classes = 10):
-    return AlexNet_cifar10(num_classes = num_classes)
+def alexnet_cifar10(num_classes = 10, in_size = 32):
+    return AlexNet_cifar10(num_classes, in_size)

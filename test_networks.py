@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 
 from easydict import EasyDict
+from models import *
 
 
 class ThreeLayerConvNet(nn.Module):
@@ -58,13 +59,17 @@ def test_ConvNet(model, x_shape):
 if __name__ == '__main__':
     x_shape = (4, 3, 227, 227)
     # model = ThreeLayerConvNet(in_channel = 3, channel_1 = 12)
-    # test_ConvNet(model, x_shape)
-    from models import *
-    config = EasyDict({'architecture': 'inception_v1', 'num_classes': 10})
+    config = EasyDict({'architecture': 'inception_v1', 'num_classes': 10, 'input_size': 227})
     model = get_model(config)
+
     # test_ConvNet(model, x_shape)
+    model.train()
     x = torch.ones(x_shape)
     scores = model(x)
-    print(scores.size())
-    print(scores.max(1))
+    if isinstance(scores, tuple):
+        for s in scores:
+            print(s.size())
 
+    print(len(scores))
+    # print(scores.size())
+    # print(scores.max(1))

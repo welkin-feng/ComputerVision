@@ -18,6 +18,7 @@ import logging
 import numpy as np
 
 import torch
+import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 
@@ -27,7 +28,8 @@ __all__ = ['Cutout', 'Logger',
            'count_parameters', 'data_augmentation',
            'save_checkpoint', 'load_checkpoint',
            'get_data_loader', 'mixup_data', 'mixup_criterion',
-           'get_current_lr', 'adjust_learning_rate']
+           'get_current_lr', 'adjust_learning_rate',
+           'get_learning_rate_scheduler']
 
 
 class Cutout(object):
@@ -192,6 +194,35 @@ def adjust_learning_rate(optimizer, epoch, config):
              (config.lr_scheduler.base_lr - config.lr_scheduler.min_lr) * \
              (1.0 - math.tanh(config.lr_scheduler.lower_bound +
                               (config.lr_scheduler.upper_bound - config.lr_scheduler.lower_bound) * ratio)) / 2.0
+
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
+
+
+def get_learning_rate_scheduler(optimizer, last_epoch, config):
+    lr_scheduler = None
+    if config.lr_scheduler.type == 'ADAPTIVE':
+        lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                            mode = config.lr_scheduler.mode,
+                                                            factor = config.lr_scheduler.lr_mults,
+                                                            patience = config.lr_scheduler.patience,
+                                                            threshold_mode = 'rel', threshold = 0.0001,
+                                                            min_lr = 0, eps = 1e-08)
+    elif config.lr_scheduler.type == 'STEP':
+        lr_scheduler = optim.lr_scheduler.StepLR(optimizer,
+                                                 step_size = config.lr_scheduler.step_size,
+                                                 gamma = config.lr_scheduler.lr_mults,
+                                                 last_epoch = last_epoch)
+    elif config.lr_scheduler.type == 'MultiSTEP':
+        lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer,
+                                                      milestones = config.lr_scheduler.lr_epochs,
+                                                      gamma = config.lr_scheduler.lr_mults,
+                                                      last_epoch = last_epoch)
+    elif config.lr_scheduler.type == 'COSINE':
+        lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                            T_max = config.epochs,
+                                                            eta_min = config.lr_scheduler.min_lr,
+                                                            last_epoch = last_epoch)
+
+    return lr_scheduler

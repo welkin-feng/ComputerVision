@@ -141,18 +141,20 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
         best_prec = acc
 
 
-def start_training(work_path, resume = False):
+def start_training(work_path, resume = False, config_dict = None):
     global args, writer, logger, config, last_epoch, best_prec
     args = EasyDict({'work_path': work_path, 'resume': resume})
     writer = SummaryWriter(logdir = args.work_path + '/event')
     logger = Logger(log_file_name = args.work_path + '/log.txt',
                     log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
 
-    # read config from yaml file
-    with open(args.work_path + '/config.yaml') as f:
-        config = yaml.load(f)
+    if config_dict is None:
+        # read config from yaml file
+        with open(args.work_path + '/config.yaml') as f:
+            config_dict = yaml.load(f)
+
     # convert to dict
-    config = EasyDict(config)
+    config = EasyDict(config_dict)
     logger.info(config)
 
     # define netowrk
@@ -209,4 +211,33 @@ def start_training(work_path, resume = False):
 
 
 if __name__ == "__main__":
-    start_training('./experience/inception_v1/cifar10', False)
+    cfg_dict = {
+        'architecture': 'inception_v1_cifar10',
+        'data_path': './data',
+        'ckpt_path': './',
+        'ckpt_name': 'inception_v1_cifar10',
+        'num_classes': 10,
+        'dataset': 'cifar10',
+        'use_gpu': True,
+        'input_size': 32, 'epochs': 250,
+        'batch_size': 128, 'test_batch': 200,
+        'eval_freq': 2, 'workers': 4,
+        'num_classifier': 3,
+        'classifier_weight': [1.0, 0.3, 0.3],
+        'optimize': {
+            'type': 'Adam', 'weight_decay': 0.005,
+            'momentum': 0.9, 'nesterov': True
+        },
+        'mixup': False, 'mixup_alpha': 0.4,
+        'augmentation': {
+            'normalize': True, 'random_crop': True,
+            'random_horizontal_filp': True,
+            'cutout': False, 'holes': 1, 'length': 8
+        },
+        'lr_scheduler': {
+            'type': 'STEP', 'base_lr': 0.001,
+            'lr_epochs': [50, 100, 150, 200, 250], 'lr_mults': 0.75,
+            'min_lr': 0.0, 'lower_bound': -6.0, 'upper_bound': 3.0
+        }
+    }
+    start_training('./experience/inception_v1/cifar10', False, config_dict = cfg_dict)

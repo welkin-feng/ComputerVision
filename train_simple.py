@@ -76,7 +76,7 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         else:
             correct += predicted.eq(targets).sum().item()
 
-        if (batch_index + 1) % 100 == 0:
+        if (batch_index + 1) % config.print_interval == 0:
             logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
                 batch_index + 1, len(train_loader),
                 train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
@@ -225,8 +225,8 @@ if __name__ == "__main__":
         'dataset': 'cifar10',
         'use_gpu': True,
         'input_size': 32, 'epochs': 250,
-        'batch_size': 128, 'test_batch': 200,
-        'eval_freq': 2, 'print_interval': 100,
+        'batch_size': 64, 'test_batch': 200,
+        'eval_freq': 2, 'print_interval': 160,
         'workers': 4,
         'num_classifier': 3,
         'classifier_weight': [1.0, 0.3, 0.3],

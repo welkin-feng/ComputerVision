@@ -22,7 +22,10 @@ class AlexNet(nn.Module):
     def __init__(self, num_classes, in_size = 227):
         """ Constructor for AlexNet """
         super().__init__()
+        self._init_model(num_classes, in_size)
+        self._initialize_weights()
 
+    def _init_model(self, num_classes, in_size):
         mid_size = int((in_size - 35) / 32)
         if mid_size <= 0:
             raise ValueError("`in_size` is too small")
@@ -58,6 +61,19 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.zero_()
+
     def forward(self, x):
         out = self.conv(x)
         out = out.view(out.size(0), -1)
@@ -66,13 +82,14 @@ class AlexNet(nn.Module):
         return out
 
 
-class AlexNet_cifar10(nn.Module):
+class AlexNet_cifar10(AlexNet):
     """ AlexNet for cifar10  """
 
     def __init__(self, num_classes = 10, in_size = 32):
         """ Constructor for AlexNet """
-        super().__init__()
+        super().__init__(num_classes, in_size)
 
+    def _init_model(self, num_classes, in_size):
         mid_size = int((in_size + 23) / 24)
 
         self.conv = nn.Sequential(
@@ -101,28 +118,6 @@ class AlexNet_cifar10(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
-
-        self._initialize_weights()
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-
-        return out
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
 
 
 def alexnet(num_classes, in_size):

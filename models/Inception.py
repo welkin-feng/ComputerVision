@@ -74,7 +74,10 @@ class Inception_v1(nn.Module):
     def __init__(self, num_classes, in_size = 224):
         """ Constructor for Inception """
         super().__init__()
+        self._init_model(num_classes, in_size)
+        self._initialize_weights()
 
+    def _init_model(self, num_classes, in_size):
         if in_size >= 65:
             mid_size = int((int((in_size + 15) / 16) - 2) / 3)
             final_size = int((in_size + 31) / 32)
@@ -130,7 +133,18 @@ class Inception_v1(nn.Module):
             nn.Linear(1024, num_classes)
         )
 
-        self._initialize_weights()
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight.data)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.zero_()
 
     def forward(self, input):
         output = self.conv_1(input)
@@ -162,19 +176,6 @@ class Inception_v1(nn.Module):
         if self.training:
             return output, output1, output2
         return output
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
 
 
 def inception_v1(num_classes, in_size):

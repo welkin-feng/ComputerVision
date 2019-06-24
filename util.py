@@ -208,7 +208,7 @@ def get_learning_rate_scheduler(optimizer, last_epoch, config):
                                                             factor = config.lr_scheduler.lr_mults,
                                                             patience = config.lr_scheduler.patience,
                                                             threshold_mode = 'rel', threshold = 0.0001,
-                                                            min_lr = 0, eps = 1e-08)
+                                                            min_lr = 0, eps = 1e-6)
     elif config.lr_scheduler.type == 'STEP':
         lr_scheduler = optim.lr_scheduler.StepLR(optimizer,
                                                  step_size = config.lr_scheduler.step_size,

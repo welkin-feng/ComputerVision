@@ -26,8 +26,8 @@ class AlexNet(nn.Module):
         self._initialize_weights()
 
     def _init_model(self, num_classes, in_size):
-        mid_size = int((in_size - 35) / 32)
-        if mid_size <= 0:
+        final_size = int((in_size - 35) / 32)
+        if final_size <= 0:
             raise ValueError("`in_size` is too small")
 
         self.conv = nn.Sequential(
@@ -52,7 +52,7 @@ class AlexNet(nn.Module):
             # (13-3)/2+1=6
         )
         self.fc = nn.Sequential(
-            nn.Linear(256 * mid_size ** 2, 4096),
+            nn.Linear(256 * final_size ** 2, 4096),
             nn.ReLU(inplace = True),
             nn.Dropout(),
             nn.Linear(4096, 4096),

@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.util_modules import Flatten, Conv2d_relu
+from models.util_modules import Flatten, Conv_bn_relu
 
 __all__ = ['vgg_16', 'vgg_19']
 
@@ -26,9 +26,9 @@ class Conv3x3_block(nn.Module):
     def __init__(self, in_channels, out_channels, depth):
         """ Constructor for Conv_ReLU """
         super().__init__()
-        conv_list = [Conv2d_relu(in_channels, out_channels, 3, 1, 1)]
+        conv_list = [Conv_bn_relu(in_channels, out_channels, 3, 1, 1)]
         for _ in range(depth - 1):
-            conv_list.append(Conv2d_relu(out_channels, out_channels, 3, 1, 1))
+            conv_list.append(Conv_bn_relu(out_channels, out_channels, 3, 1, 1))
         self.conv = nn.Sequential(*conv_list)
         self.maxpool = nn.MaxPool2d(kernel_size = 2)
 

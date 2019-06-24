@@ -22,15 +22,21 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class Conv2d_relu(nn.Module):
+class Conv_bn_relu(nn.Module):
     """  """
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride = 1,
-                 padding = 0, dilation = 1, groups = 1, bias = True):
+    def __init__(self, in_channels, out_channels, kernel_size, stride = 1, padding = 0,
+                 batch_norm = True, dilation = 1, groups = 1, bias = True):
         """ Constructor for Conv_ReLU """
         super().__init__()
+        self.batch_norm = batch_norm
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride,
                               padding, dilation, groups, bias)
+        if self.batch_norm:
+            self.bn = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
-        return F.relu(self.conv(x), inplace = True)
+        x = self.conv(x)
+        if self.batch_norm:
+            x = self.bn(x)
+        return F.relu(x, inplace = True)

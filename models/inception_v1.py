@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.util_modules import Flatten, Conv2d_relu
+from models.util_modules import Flatten, Conv_bn_relu
 
 __all__ = ['inception_v1']
 
@@ -27,18 +27,18 @@ class Inception_Module(nn.Module):
                  out_channels5_1, out_channels5_5, out_channelsm_1):
         """ Constructor for Inception_Module """
         super().__init__()
-        self.conv1 = Conv2d_relu(in_channels, out_channels1_1, kernel_size = 1, stride = 1)
+        self.conv1 = Conv_bn_relu(in_channels, out_channels1_1, kernel_size = 1, stride = 1)
         self.conv3 = nn.Sequential(
-            Conv2d_relu(in_channels, out_channels3_1, kernel_size = 1, stride = 1),
-            Conv2d_relu(out_channels3_1, out_channels3_3, kernel_size = 3, stride = 1, padding = 1),
+            Conv_bn_relu(in_channels, out_channels3_1, kernel_size = 1, stride = 1),
+            Conv_bn_relu(out_channels3_1, out_channels3_3, kernel_size = 3, stride = 1, padding = 1),
         )
         self.conv5 = nn.Sequential(
-            Conv2d_relu(in_channels, out_channels5_1, kernel_size = 1, stride = 1),
-            Conv2d_relu(out_channels5_1, out_channels5_5, kernel_size = 5, stride = 1, padding = 2),
+            Conv_bn_relu(in_channels, out_channels5_1, kernel_size = 1, stride = 1),
+            Conv_bn_relu(out_channels5_1, out_channels5_5, kernel_size = 5, stride = 1, padding = 2),
         )
         self.maxpool = nn.Sequential(
             nn.MaxPool2d(kernel_size = 3, stride = 1, padding = 1),
-            Conv2d_relu(in_channels, out_channelsm_1, kernel_size = 1, stride = 1),
+            Conv_bn_relu(in_channels, out_channelsm_1, kernel_size = 1, stride = 1),
         )
 
     def forward(self, x):
@@ -62,14 +62,14 @@ class Inception_v1(nn.Module):
         if in_size >= 65:
             mid_size = int((int((in_size + 15) / 16) - 2) / 3)
             final_size = int((in_size + 31) / 32)
-            self.conv_1 = Conv2d_relu(3, 64, kernel_size = 7, stride = 2, padding = 3)
+            self.conv_1 = Conv_bn_relu(3, 64, kernel_size = 7, stride = 2, padding = 3)
         else:
             mid_size = int(int((in_size + 7) / 8) - 2)
             final_size = int((in_size + 15) / 16)
-            self.conv_1 = Conv2d_relu(3, 64, kernel_size = 7, stride = 1, padding = 3)
+            self.conv_1 = Conv_bn_relu(3, 64, kernel_size = 7, stride = 1, padding = 3)
         self.maxpool_1 = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
-        self.conv_2_1 = Conv2d_relu(64, 64, kernel_size = 1)
-        self.conv_2_2 = Conv2d_relu(64, 192, kernel_size = 3, stride = 1, padding = 1)
+        self.conv_2_1 = Conv_bn_relu(64, 64, kernel_size = 1)
+        self.conv_2_2 = Conv_bn_relu(64, 192, kernel_size = 3, stride = 1, padding = 1)
         self.maxpool_2 = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         self.inception_3a = Inception_Module(192, 64, 96, 128, 16, 32, 32)
         self.inception_3b = Inception_Module(256, 128, 128, 192, 32, 96, 64)
@@ -81,7 +81,7 @@ class Inception_v1(nn.Module):
         else:
             self.avgpool_4a = nn.AvgPool2d(kernel_size = 3, stride = 1)
         self.auxiliary_classifier_1 = nn.Sequential(
-            Conv2d_relu(512, 128, kernel_size = 1, stride = 1),
+            Conv_bn_relu(512, 128, kernel_size = 1, stride = 1),
             Flatten(),
             nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),
@@ -96,7 +96,7 @@ class Inception_v1(nn.Module):
         else:
             self.avgpool_4d = nn.AvgPool2d(kernel_size = 3, stride = 1)
         self.auxiliary_classifier_2 = nn.Sequential(
-            Conv2d_relu(528, 128, kernel_size = 1, stride = 1),
+            Conv_bn_relu(528, 128, kernel_size = 1, stride = 1),
             Flatten(),
             nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),

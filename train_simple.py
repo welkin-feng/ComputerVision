@@ -213,6 +213,7 @@ def start_training(work_path, resume = False, config_dict = None):
             test(test_loader, net, criterion, optimizer, epoch, device)
 
     logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
+    del args, writer, logger, config, last_epoch, best_prec
 
 
 if __name__ == "__main__":
@@ -242,7 +243,7 @@ if __name__ == "__main__":
         },
         'lr_scheduler': {
             # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
-            'type': 'ADAPTIVE', 'base_lr': 0.1,
+            'type': 'ADAPTIVE', 'base_lr': 0.01,
             'lr_mults': 0.1,  # for ADAPTIVE, STEP and MultiSTEP
             'min_lr': 0.0,  # for ADAPTIVE, COSINE and HTD
             'mode': 'max', 'patience': 10,  # only for ADAPTIVE

@@ -250,4 +250,4 @@ if __name__ == "__main__":
             'lower_bound': -6.0, 'upper_bound': 3.0
         }
     }
-    start_training('./experience/inception_v1/cifar10', False, cfg_dict)
+    start_training('./experience/vgg/cifar10', False)

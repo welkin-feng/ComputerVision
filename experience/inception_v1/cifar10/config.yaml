@@ -1,10 +1,10 @@
 # net architecture
-architecture: inception_v1_cifar10
+architecture: inception_v1
 
 # log and checkpoint
 data_path: ./data
 ckpt_path: ./
-ckpt_name: inception_v1_cifar10
+ckpt_name: inception_v1
 
 # datasets
 num_classes: 10

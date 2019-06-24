@@ -15,28 +15,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['inception_v1', 'inception_v1_cifar10']
+from models.util_modules import Flatten, Conv2d_relu
 
-
-class Flatten(nn.Module):
-    """  """
-
-    def forward(self, x):
-        return x.view(x.size(0), -1)
-
-
-class Conv2d_relu(nn.Module):
-    """  """
-
-    def __init__(self, in_channels, out_channels, kernel_size, stride = 1,
-                 padding = 0, dilation = 1, groups = 1, bias = True):
-        """ Constructor for Conv_ReLU """
-        super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride,
-                              padding, dilation, groups, bias)
-
-    def forward(self, x):
-        return F.relu(self.conv(x), inplace = True)
+__all__ = ['inception_v1']
 
 
 class Inception_Module(nn.Module):
@@ -178,9 +159,5 @@ class Inception_v1(nn.Module):
         return output
 
 
-def inception_v1(num_classes, in_size):
-    return Inception_v1(num_classes, in_size)
-
-
-def inception_v1_cifar10(num_classes, in_size):
+def inception_v1(num_classes, in_size = 224):
     return Inception_v1(num_classes, in_size)

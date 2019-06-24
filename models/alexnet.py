@@ -13,7 +13,7 @@ __date__ = '2019/6/18 03:06'
 
 import torch.nn as nn
 
-__all__ = ['alexnet', 'alexnet_cifar10']
+__all__ = ['alexnet']
 
 
 class AlexNet(nn.Module):
@@ -120,9 +120,5 @@ class AlexNet_cifar10(AlexNet):
         )
 
 
-def alexnet(num_classes, in_size):
+def alexnet(num_classes, in_size = 227):
     return AlexNet(num_classes, in_size)
-
-
-def alexnet_cifar10(num_classes = 10, in_size = 32):
-    return AlexNet_cifar10(num_classes, in_size)

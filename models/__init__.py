@@ -13,6 +13,7 @@ __date__ = '2019/6/21 08:34'
 
 from .alexnet import *
 from .inception_v1 import *
+from .vgg import *
 
 
 def get_model(config):

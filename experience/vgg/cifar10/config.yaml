@@ -1,10 +1,10 @@
 # net architecture
-architecture: vgg_19
+architecture: vgg19_bn
 
 # log and checkpoint
 data_path: ./data
 ckpt_path: ./
-ckpt_name: vgg_19
+ckpt_name: vgg19_bn
 
 # datasets
 num_classes: 10

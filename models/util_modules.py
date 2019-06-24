@@ -26,7 +26,7 @@ class Conv_bn_relu(nn.Module):
     """  """
 
     def __init__(self, in_channels, out_channels, kernel_size, stride = 1, padding = 0,
-                 batch_norm = True, dilation = 1, groups = 1, bias = True):
+                 batch_norm = False, dilation = 1, groups = 1, bias = True):
         """ Constructor for Conv_ReLU """
         super().__init__()
         self.batch_norm = batch_norm

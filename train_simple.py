@@ -243,10 +243,10 @@ if __name__ == "__main__":
         },
         'lr_scheduler': {
             # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
-            'type': 'ADAPTIVE', 'base_lr': 0.01,
+            'type': 'ADAPTIVE', 'base_lr': 0.1,
             'lr_mults': 0.1,  # for ADAPTIVE, STEP and MultiSTEP
             'min_lr': 0.0,  # for ADAPTIVE, COSINE and HTD
-            'mode': 'max', 'patience': 10,  # only for ADAPTIVE
+            'mode': 'max', 'patience': 20,  # only for ADAPTIVE
             'step_size': 50,  # only for STEP
             'lr_epochs': [50, 100, 150, 200, 250],  # only for MultiSTEP
             'lower_bound': -6.0, 'upper_bound': 3.0

@@ -23,12 +23,12 @@ __all__ = ['vgg_16', 'vgg_19']
 class Conv3x3_block(nn.Module):
     """  """
 
-    def __init__(self, in_channels, out_channels, depth):
+    def __init__(self, in_channels, out_channels, depth, batch_norm):
         """ Constructor for Conv_ReLU """
         super().__init__()
-        conv_list = [Conv_bn_relu(in_channels, out_channels, 3, 1, 1)]
+        conv_list = [Conv_bn_relu(in_channels, out_channels, 3, 1, 1, batch_norm)]
         for _ in range(depth - 1):
-            conv_list.append(Conv_bn_relu(out_channels, out_channels, 3, 1, 1))
+            conv_list.append(Conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm))
         self.conv = nn.Sequential(*conv_list)
         self.maxpool = nn.MaxPool2d(kernel_size = 2)
 
@@ -41,26 +41,26 @@ class Conv3x3_block(nn.Module):
 class VGG(nn.Module):
     """  """
 
-    def __init__(self, num_classes, depth = 16, in_size = 224):
+    def __init__(self, num_classes, depth = 16, in_size = 224, batch_norm = False):
         """ Constructor for VGG """
         super().__init__()
         assert depth in (16, 19), 'depth should be 16 or 19'
-        self._init_model(num_classes, depth, in_size)
+        self._init_model(num_classes, depth, batch_norm, in_size)
         self._initialize_weights()
 
-    def _init_model(self, num_classes, depth, in_size):
+    def _init_model(self, num_classes, depth, batch_norm, in_size):
         final_size = int(in_size / 32)
 
-        self.block_1 = Conv3x3_block(3, 64, 2)
-        self.block_2 = Conv3x3_block(64, 128, 2)
+        self.block_1 = Conv3x3_block(3, 64, 2, batch_norm)
+        self.block_2 = Conv3x3_block(64, 128, 2, batch_norm)
         if depth == 16:
-            self.block_3 = Conv3x3_block(128, 256, 3)
-            self.block_4 = Conv3x3_block(256, 512, 3)
-            self.block_5 = Conv3x3_block(512, 512, 3)
+            self.block_3 = Conv3x3_block(128, 256, 3, batch_norm)
+            self.block_4 = Conv3x3_block(256, 512, 3, batch_norm)
+            self.block_5 = Conv3x3_block(512, 512, 3, batch_norm)
         elif depth == 19:
-            self.block_3 = Conv3x3_block(128, 256, 4)
-            self.block_4 = Conv3x3_block(256, 512, 4)
-            self.block_5 = Conv3x3_block(512, 512, 4)
+            self.block_3 = Conv3x3_block(128, 256, 4, batch_norm)
+            self.block_4 = Conv3x3_block(256, 512, 4, batch_norm)
+            self.block_5 = Conv3x3_block(512, 512, 4, batch_norm)
         self.flatten = Flatten()
         self.fc = nn.Sequential(
             nn.Linear(512 * final_size ** 2, 4096),
@@ -96,9 +96,17 @@ class VGG(nn.Module):
         return output
 
 
-def vgg_16(num_classes, in_size = 224):
+def vgg16(num_classes, in_size = 224):
     return VGG(num_classes, 16, in_size)
 
 
-def vgg_19(num_classes, in_size = 224):
+def vgg16_bn(num_classes, in_size = 224):
+    return VGG(num_classes, 16, in_size, batch_norm = True)
+
+
+def vgg19(num_classes, in_size = 224):
     return VGG(num_classes, 19, in_size)
+
+
+def vgg19_bn(num_classes, in_size = 224):
+    return VGG(num_classes, 19, in_size, batch_norm = True)

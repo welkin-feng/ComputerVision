@@ -237,11 +237,11 @@ if __name__ == "__main__":
             'cutout': False, 'holes': 1, 'length': 8
         },
         'optimize': {
-            'type': 'SGD', 'weight_decay': 0.005,
+            'type': 'SGD', 'weight_decay': 5e-4,
             'momentum': 0.9, 'nesterov': True},
         'lr_scheduler': {
             # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
-            'type': 'ADAPTIVE', 'base_lr': 0.01,
+            'type': 'ADAPTIVE', 'base_lr': 0.1,
             'lr_mults': 0.1,  # for ADAPTIVE, STEP and MultiSTEP
             'min_lr': 0.0,  # for ADAPTIVE, COSINE and HTD
             'mode': 'max', 'patience': 10,  # only for ADAPTIVE

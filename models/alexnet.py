@@ -4,7 +4,7 @@
 
 Project Name:   ComputerVision 
 
-File Name:  AlexNet.py
+File Name:  alexnet.py
 
 """
 

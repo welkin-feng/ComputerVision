@@ -217,19 +217,19 @@ def start_training(work_path, resume = False, config_dict = None):
 
 if __name__ == "__main__":
     cfg_dict = {
-        'architecture': 'inception_v1_cifar10',
+        'architecture': 'vgg_19',
         'data_path': './data',
         'ckpt_path': './',
-        'ckpt_name': 'inception_v1_cifar10',
+        'ckpt_name': 'vgg_19',
         'num_classes': 10,
         'dataset': 'cifar10',
         'use_gpu': True,
         'input_size': 32, 'epochs': 250,
-        'batch_size': 64, 'test_batch': 200,
-        'eval_freq': 2, 'print_interval': 160,
+        'batch_size': 128, 'test_batch': 200,
+        'eval_freq': 2, 'print_interval': 100,
         'workers': 4,
-        'num_classifier': 3,
-        'classifier_weight': [1.0, 0.3, 0.3],
+        'num_classifier': 1,
+        'classifier_weight': [1.0],
         'mixup': False, 'mixup_alpha': 0.4,
         'augmentation': {
             'normalize': True, 'random_crop': True,
@@ -237,8 +237,9 @@ if __name__ == "__main__":
             'cutout': False, 'holes': 1, 'length': 8
         },
         'optimize': {
-            'type': 'SGD', 'weight_decay': 5e-4,
-            'momentum': 0.9, 'nesterov': True},
+            'type': 'SGD', 'weight_decay': 0.0005,
+            'momentum': 0.9, 'nesterov': True
+        },
         'lr_scheduler': {
             # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
             'type': 'ADAPTIVE', 'base_lr': 0.1,

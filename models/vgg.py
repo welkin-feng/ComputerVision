@@ -110,3 +110,17 @@ def vgg19(num_classes, in_size = 224):
 
 def vgg19_bn(num_classes, in_size = 224):
     return VGG(num_classes, 19, in_size, batch_norm = True)
+
+
+if __name__ == '__main__':
+    # test
+    import sys
+
+    fn_list = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
+    for fn in fn_list:
+        f = getattr(sys.modules[__name__], fn)
+        model = f(10)
+        print(' ---', fn, '---')
+        for k, v in model.state_dict().items():
+            print(k)
+        print()

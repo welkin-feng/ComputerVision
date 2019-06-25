@@ -165,3 +165,17 @@ def inception_v1(num_classes, in_size = 224):
 
 def inception_v1_bn(num_classes, in_size = 224):
     return Inception_v1(num_classes, in_size, batch_norm = True)
+
+
+if __name__ == '__main__':
+    # test
+    import sys
+
+    fn_list = ['inception_v1', 'inception_v1_bn']
+    for fn in fn_list:
+        f = getattr(sys.modules[__name__], fn)
+        model = f(10)
+        print(' ---', fn, '---')
+        for k, v in model.state_dict().items():
+            print(k)
+        print()

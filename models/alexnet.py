@@ -122,3 +122,17 @@ class AlexNet_cifar10(AlexNet):
 
 def alexnet(num_classes, in_size = 227):
     return AlexNet(num_classes, in_size)
+
+
+if __name__ == '__main__':
+    # test
+    import sys
+
+    fn_list = ['alexnet']
+    for fn in fn_list:
+        f = getattr(sys.modules[__name__], fn)
+        model = f(10)
+        print(' ---', fn, '---')
+        for k, v in model.state_dict().items():
+            print(k)
+        print()

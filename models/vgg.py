@@ -17,7 +17,7 @@ import torch.nn.functional as F
 
 from models.util_modules import Flatten, Conv_bn_relu
 
-__all__ = ['vgg_16', 'vgg_19']
+__all__ = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
 
 
 class Conv3x3_block(nn.Module):

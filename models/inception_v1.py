@@ -17,7 +17,7 @@ import torch.nn.functional as F
 
 from models.util_modules import Flatten, Conv_bn_relu
 
-__all__ = ['inception_v1']
+__all__ = ['inception_v1', 'inception_v1_bn']
 
 
 class Inception_Module(nn.Module):

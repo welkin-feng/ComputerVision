@@ -230,39 +230,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    cfg_dict = {
-        'architecture': 'vgg_19',
-        'data_path': './data',
-        'ckpt_path': './',
-        'ckpt_name': 'vgg_19',
-        'num_classes': 10,
-        'dataset': 'cifar10',
-        'use_gpu': True,
-        'input_size': 32, 'epochs': 250,
-        'batch_size': 128, 'test_batch': 200,
-        'eval_freq': 2, 'print_interval': 100,
-        'workers': 4,
-        'num_classifier': 1,
-        'classifier_weight': [1.0],
-        'mixup': False, 'mixup_alpha': 0.4,
-        'augmentation': {
-            'normalize': True, 'random_crop': True,
-            'random_horizontal_filp': True,
-            'cutout': False, 'holes': 1, 'length': 8
-        },
-        'optimize': {
-            'type': 'SGD', 'weight_decay': 0.0005,
-            'momentum': 0.9, 'nesterov': True
-        },
-        'lr_scheduler': {
-            # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
-            'type': 'ADAPTIVE', 'base_lr': 0.1,
-            'lr_mults': 0.1,  # for ADAPTIVE, STEP and MultiSTEP
-            'min_lr': 0.0,  # for ADAPTIVE, COSINE and HTD
-            'mode': 'max', 'patience': 20,  # only for ADAPTIVE
-            'step_size': 50,  # only for STEP
-            'lr_epochs': [50, 100, 150, 200, 250],  # only for MultiSTEP
-            'lower_bound': -6.0, 'upper_bound': 3.0
-        }
-    }
-    start_training('./experience/vgg/cifar10', False)
+    main(parse_args())

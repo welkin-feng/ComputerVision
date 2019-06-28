@@ -1,10 +1,10 @@
 # net architecture
-architecture: inception_v1
+architecture: inception_v1_bn
 
 # log and checkpoint
 data_path: ./data
 ckpt_path: ./
-ckpt_name: inception_v1
+ckpt_name: inception_v1_bn
 
 # datasets
 num_classes: 10
@@ -14,10 +14,10 @@ dataset: cifar10
 use_gpu: True
 input_size: 32
 epochs: 250
-batch_size: 64
+batch_size: 128
 test_batch: 200
 eval_freq: 2
-print_interval: 160
+print_interval: 100
 workers: 4
 
 # multi classifiers used during training
@@ -40,7 +40,7 @@ augmentation:
 optimize:
   # type: SGD or Adam
   type: SGD
-  weight_decay: 5e-4
+  weight_decay: 0.0005
   # only for SGD
   momentum: 0.9
   nesterov: True

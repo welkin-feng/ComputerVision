@@ -11,6 +11,7 @@ File Name:  train_simple.py
 __author__ = 'Welkin'
 __date__ = '2019/6/21 03:10'
 
+import argparse
 import time
 import yaml
 import logging
@@ -97,7 +98,7 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
 
 
 def test(test_loader, net, criterion, optimizer, epoch, device):
-    global best_prec, writer
+    global writer, best_prec
 
     net.eval()
 
@@ -142,7 +143,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
 
 def start_training(work_path, resume = False, config_dict = None):
-    global args, writer, logger, config, last_epoch, best_prec
+    global args, writer, logger, config, best_prec
     args = EasyDict({'work_path': work_path, 'resume': resume})
     writer = SummaryWriter(logdir = args.work_path + '/event')
     logger = Logger(log_file_name = args.work_path + '/log.txt',
@@ -214,6 +215,18 @@ def start_training(work_path, resume = False, config_dict = None):
 
     logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
     del args, writer, logger, config, last_epoch, best_prec
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
+    parser.add_argument('--work-path', required = True, type = str)
+    parser.add_argument('--resume', action = 'store_true',
+                        help = 'resume from checkpoint')
+    return parser.parse_args()
+
+
+def main(args):
+    start_training(args.work_path, args.resume)
 
 
 if __name__ == "__main__":

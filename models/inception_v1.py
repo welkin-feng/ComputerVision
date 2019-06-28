@@ -37,7 +37,7 @@ class Inception_Module(nn.Module):
             Conv_bn_relu(out_channels5_1, out_channels5_5, kernel_size = 5, padding = 2, batch_norm = bn),
         )
         self.maxpool = nn.Sequential(
-            nn.MaxPool2d(kernel_size = 3, padding = 1),
+            nn.MaxPool2d(kernel_size = 3, stride = 1, padding = 1),
             Conv_bn_relu(in_channels, out_channelsm_1, kernel_size = 1, batch_norm = bn),
         )
 

@@ -14,6 +14,8 @@ __date__ = '2019/6/24 12:23'
 import torch.nn as nn
 import torch.nn.functional as F
 
+__all__ = ['Flatten', 'Conv_bn_relu']
+
 
 class Flatten(nn.Module):
     """  """

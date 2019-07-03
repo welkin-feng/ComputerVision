@@ -1,0 +1,66 @@
+# net architecture
+architecture: mobilenet_v1
+
+# log and checkpoint
+data_path: ./data
+ckpt_path: ./
+ckpt_name: mobilenet_v1
+
+# datasets
+num_classes: 10
+dataset: cifar10
+
+# training parameters
+use_gpu: True
+input_size: 32
+epochs: 250
+batch_size: 128
+test_batch: 200
+eval_freq: 2
+print_interval: 100
+workers: 4
+
+# multi classifiers used during training
+num_classifier: 1
+classifier_weight: [1.,]
+
+# regularization
+mixup: False
+mixup_alpha: 0.4
+
+augmentation:
+  normalize: True
+  random_crop: True
+  random_horizontal_filp: True
+  cutout: False
+  holes: 1
+  length: 8
+
+# optimizer
+optimize:
+  # type: SGD or Adam
+  type: SGD
+  weight_decay: 0.0005
+  # only for SGD
+  momentum: 0.9
+  nesterov: True
+
+# learning rate scheduler
+lr_scheduler:
+  # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
+  type: ADAPTIVE
+  base_lr: 0.1
+  # for ADAPTIVE, STEP and MultiSTEP
+  lr_mults: 0.1
+  # for ADAPTIVE, COSINE and HTD
+  min_lr: 0.0
+  # only for ADAPTIVE
+  mode: max
+  patience: 20
+  # only for STEP
+  step_size: 50
+  # only for MultiSTEP
+  lr_epochs: [50, 100, 150, 200, 250]
+  # only for HTD
+  lower_bound: -6.0
+  upper_bound: 3.0

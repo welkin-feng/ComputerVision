@@ -15,6 +15,7 @@ from .alexnet import *
 from .inception_v1 import *
 from .vgg import *
 from .spp import *
+from .mobilenet_v1 import *
 
 
 def get_model(config):

@@ -60,12 +60,12 @@ class Inception_v1(nn.Module):
 
     def _init_model(self, num_classes, in_size, bn = False):
         if in_size >= 65:
-            mid_size = int((int((in_size + 15) / 16) - 2) / 3)
-            final_size = int((in_size + 31) / 32)
+            mid_size = (((in_size + 15) // 16) - 2) // 3
+            final_size = (in_size + 31) // 32
             self.conv_1 = Conv_bn_relu(3, 64, kernel_size = 7, stride = 2, padding = 3, batch_norm = bn)
         else:
-            mid_size = int(int((in_size + 7) / 8) - 2)
-            final_size = int((in_size + 15) / 16)
+            mid_size = ((in_size + 7) // 8) - 2
+            final_size = (in_size + 15) // 16
             self.conv_1 = Conv_bn_relu(3, 64, kernel_size = 7, stride = 1, padding = 3, batch_norm = bn)
         self.maxpool_1 = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
         self.conv_2_1 = Conv_bn_relu(64, 64, kernel_size = 1, batch_norm = bn)

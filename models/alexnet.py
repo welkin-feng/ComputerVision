@@ -26,7 +26,7 @@ class AlexNet(nn.Module):
         self._initialize_weights()
 
     def _init_model(self, num_classes, in_size):
-        final_size = int((in_size - 35) / 32)
+        final_size = (in_size - 35) // 32
         if final_size <= 0:
             raise ValueError("`in_size` is too small")
 
@@ -90,7 +90,7 @@ class AlexNet_cifar10(AlexNet):
         super().__init__(num_classes, in_size)
 
     def _init_model(self, num_classes, in_size):
-        mid_size = int((in_size + 23) / 24)
+        mid_size = (in_size + 23) // 24
 
         self.conv = nn.Sequential(
             nn.Conv2d(3, 96, kernel_size = 11, stride = 3, padding = 5),

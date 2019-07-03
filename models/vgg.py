@@ -49,7 +49,7 @@ class VGG(nn.Module):
         self._initialize_weights()
 
     def _init_model(self, num_classes, depth, batch_norm, in_size):
-        final_size = int(in_size / 32)
+        final_size = in_size // 32
 
         self.block_1 = Conv3x3_block(3, 64, 2, batch_norm)
         self.block_2 = Conv3x3_block(64, 128, 2, batch_norm)

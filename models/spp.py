@@ -15,7 +15,9 @@ import math
 import torch
 import torch.nn as nn
 
-from models.util_modules import *
+from .util_modules import *
+
+__all__ = ['SPP', 'SPP_multi_level']
 
 
 class SPP(nn.Module):

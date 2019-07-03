@@ -13,7 +13,7 @@ __date__ = '2019/6/18 03:06'
 
 import torch.nn as nn
 
-__all__ = ['alexnet']
+__all__ = ['alexnet', 'alexnet_cifar10']
 
 
 class AlexNet(nn.Module):
@@ -67,11 +67,11 @@ class AlexNet(nn.Module):
                 nn.init.kaiming_normal_(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
     def forward(self, x):
@@ -121,6 +121,10 @@ class AlexNet_cifar10(AlexNet):
 
 
 def alexnet(num_classes, in_size = 227):
+    return AlexNet(num_classes, in_size)
+
+
+def alexnet_cifar10(num_classes, in_size = 32):
     return AlexNet(num_classes, in_size)
 
 

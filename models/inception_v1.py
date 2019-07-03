@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.util_modules import Flatten, Conv_bn_relu
+from .util_modules import Flatten, Conv_bn_relu
 
 __all__ = ['inception_v1', 'inception_v1_bn']
 
@@ -120,11 +120,11 @@ class Inception_v1(nn.Module):
                 nn.init.kaiming_normal_(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
     def forward(self, input):

@@ -11,11 +11,9 @@ File Name:  vgg.py
 __author__ = 'Welkin'
 __date__ = '2019/6/24 12:11'
 
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from models.util_modules import Flatten, Conv_bn_relu
+from .util_modules import Flatten, Conv_bn_relu
 
 __all__ = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
 
@@ -78,11 +76,11 @@ class VGG(nn.Module):
                 nn.init.kaiming_normal_(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight.data)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
     def forward(self, input):

@@ -21,7 +21,7 @@ __all__ = ['mobilenet_v1']
 class DepthwiseSeparableConv(nn.Module):
     """  """
 
-    def __init__(self, in_channels, out_channels, kernel_size = 3, stride = 1, padding = 1, alpha = 1):
+    def __init__(self, in_channels, out_channels, kernel_size = 3, stride = 1, padding = 1, depth_multiplier = 1):
         """ Constructor for DepthwiseSeparableConv """
         super().__init__()
         self.dw_conv = nn.Sequential(

@@ -40,7 +40,7 @@ augmentation:
 optimize:
   # type: SGD or Adam
   type: SGD
-  weight_decay: 0.0005
+  weight_decay: 0.00004
   # only for SGD
   momentum: 0.9
   nesterov: True

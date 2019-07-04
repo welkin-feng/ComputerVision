@@ -129,8 +129,6 @@ dmypy.json
 .DS_Store
 .idea/
 data/
-event/
-*ckpt*
-*.pth.tar
-log.txt
 /test_network.py
+!pretrained/
+cifar10/*

@@ -180,6 +180,9 @@ def start_training(work_path, resume = False, config_dict = None):
     elif config.optimize.type == 'Adam':
         optimizer = optim.Adam(net.parameters(), lr = config.lr_scheduler.base_lr,
                                weight_decay = config.optimize.weight_decay)
+    elif config.optimize.type == 'RMSprop':
+        optimizer = optim.RMSprop(net.parameters(), lr = config.lr_scheduler.base_lr,
+                                  weight_decay = config.optimize.weight_decay)
 
     # resume from a checkpoint
     last_epoch = -1

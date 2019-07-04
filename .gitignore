@@ -128,7 +128,16 @@ dmypy.json
 
 .DS_Store
 .idea/
+
+# folder
 data/
-/test_network.py
-!pretrained/
-cifar10/*
+event/
+/experience/**/cifar10/*
+!/experience/**/cifar10/pretrained/
+
+# file
+test_network.py
+log.txt
+*.pth.tar
+!/experience/**/cifar10/config.yaml
+!/experience/**/cifar10/pretrained/*pth.tar

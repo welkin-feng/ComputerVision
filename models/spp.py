@@ -38,13 +38,16 @@ class SPP(nn.Module):
 class SPP_multi_level(nn.Module):
     """  """
 
-    def __init__(self, in_size, out_size_list):
+    def __init__(self, in_size, out_size_list, flatten = False):
         """ Constructor for SPP_multi_level """
         super().__init__()
-        self.flatten = Flatten()
+        if flatten:
+            self.flatten = Flatten()
         self.spp_list = [SPP(in_size, out_size) for out_size in out_size_list]
 
     def forward(self, x):
-        out_list = tuple(self.flatten(spp(x)) for spp in self.spp_list)
-        out = torch.cat(out_list)
+        out = tuple(spp(x) for spp in self.spp_list)
+        if hasattr(self, 'flatten'):
+            out = tuple(self.flatten(o) for o in out)
+            out = torch.cat(out)
         return out

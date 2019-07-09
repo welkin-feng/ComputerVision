@@ -26,7 +26,7 @@ class Conv3x3_block(nn.Module):
         super().__init__()
         conv_list = [Conv_bn_relu(in_channels, out_channels, 3, 1, 1, batch_norm)]
         for _ in range(depth - 1):
-            conv_list.append(Conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm))
+            conv_list += [Conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm)]
         self.conv = nn.Sequential(*conv_list)
         self.maxpool = nn.MaxPool2d(kernel_size = 2)
 
@@ -48,27 +48,25 @@ class VGG(nn.Module):
 
     def _init_model(self, num_classes, depth, batch_norm, in_size):
         final_size = in_size // 32
-
-        self.block_1 = Conv3x3_block(3, 64, 2, batch_norm)
-        self.block_2 = Conv3x3_block(64, 128, 2, batch_norm)
+        net = [Conv3x3_block(3, 64, 2, batch_norm),
+               Conv3x3_block(64, 128, 2, batch_norm)]
         if depth == 16:
-            self.block_3 = Conv3x3_block(128, 256, 3, batch_norm)
-            self.block_4 = Conv3x3_block(256, 512, 3, batch_norm)
-            self.block_5 = Conv3x3_block(512, 512, 3, batch_norm)
+            net += [Conv3x3_block(128, 256, 3, batch_norm),
+                    Conv3x3_block(256, 512, 3, batch_norm),
+                    Conv3x3_block(512, 512, 3, batch_norm)]
         elif depth == 19:
-            self.block_3 = Conv3x3_block(128, 256, 4, batch_norm)
-            self.block_4 = Conv3x3_block(256, 512, 4, batch_norm)
-            self.block_5 = Conv3x3_block(512, 512, 4, batch_norm)
+            net += [Conv3x3_block(128, 256, 4, batch_norm),
+                    Conv3x3_block(256, 512, 4, batch_norm),
+                    Conv3x3_block(512, 512, 4, batch_norm)]
+        self.conv = nn.Sequential(*net)
         self.flatten = Flatten()
-        self.fc = nn.Sequential(
-            nn.Linear(512 * final_size ** 2, 4096),
-            nn.ReLU(inplace = True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace = True),
-            nn.Dropout(),
-            nn.Linear(4096, num_classes),
-        )
+        self.fc = nn.Sequential(nn.Linear(512 * final_size ** 2, 4096),
+                                nn.ReLU(inplace = True),
+                                nn.Dropout(),
+                                nn.Linear(4096, 4096),
+                                nn.ReLU(inplace = True),
+                                nn.Dropout(),
+                                nn.Linear(4096, num_classes))
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -84,11 +82,7 @@ class VGG(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, input):
-        output = self.block_1(input)
-        output = self.block_2(output)
-        output = self.block_3(output)
-        output = self.block_4(output)
-        output = self.block_5(output)
+        output = self.conv(input)
         output = self.flatten(output)
         output = self.fc(output)
         return output

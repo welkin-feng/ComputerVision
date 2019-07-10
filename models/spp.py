@@ -15,7 +15,7 @@ import math
 import torch
 import torch.nn as nn
 
-from .util_modules import *
+from .util_modules import Flatten
 
 __all__ = ['SPP', 'SPP_multi_level']
 

@@ -13,7 +13,7 @@ __date__ = '2019/7/4 00:22'
 
 import torch.nn as nn
 
-from .util_modules import *
+from .util_modules import Flatten
 
 __all__ = ['mobilenet_v1']
 

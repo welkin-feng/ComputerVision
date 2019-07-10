@@ -18,10 +18,10 @@ from .util_modules import Flatten, conv_bn_relu
 __all__ = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
 
 
-def conv3x3_block(in_channels, out_channels, depth, batch_norm):
-    block = [conv_bn_relu(in_channels, out_channels, 3, 1, 1, batch_norm)]
+def conv3x3_block(in_channels, out_channels, depth, use_bn):
+    block = [conv_bn_relu(in_channels, out_channels, 3, 1, 1, use_bn)]
     for _ in range(depth - 1):
-        block += [conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm)]
+        block += [conv_bn_relu(out_channels, out_channels, 3, 1, 1, use_bn)]
     block += [nn.MaxPool2d(kernel_size = 2)]
     return nn.Sequential(*block)
 
@@ -29,25 +29,25 @@ def conv3x3_block(in_channels, out_channels, depth, batch_norm):
 class VGG(nn.Module):
     """  """
 
-    def __init__(self, num_classes, depth = 16, in_size = 224, batch_norm = False):
+    def __init__(self, num_classes, depth = 16, in_size = 224, use_batch_norm = False):
         """ Constructor for VGG """
         super().__init__()
         assert depth in (16, 19), 'depth should be 16 or 19'
-        self._init_model(num_classes, depth, batch_norm, in_size)
+        self._init_model(num_classes, depth, use_batch_norm, in_size)
         self._initialize_weights()
 
-    def _init_model(self, num_classes, depth, batch_norm, in_size):
+    def _init_model(self, num_classes, depth, use_bn, in_size):
         final_size = in_size // 32
-        net = [conv3x3_block(3, 64, 2, batch_norm),
-               conv3x3_block(64, 128, 2, batch_norm)]
+        net = [conv3x3_block(3, 64, 2, use_bn),
+               conv3x3_block(64, 128, 2, use_bn)]
         if depth == 16:
-            net += [conv3x3_block(128, 256, 3, batch_norm),
-                    conv3x3_block(256, 512, 3, batch_norm),
-                    conv3x3_block(512, 512, 3, batch_norm)]
+            net += [conv3x3_block(128, 256, 3, use_bn),
+                    conv3x3_block(256, 512, 3, use_bn),
+                    conv3x3_block(512, 512, 3, use_bn)]
         elif depth == 19:
-            net += [conv3x3_block(128, 256, 4, batch_norm),
-                    conv3x3_block(256, 512, 4, batch_norm),
-                    conv3x3_block(512, 512, 4, batch_norm)]
+            net += [conv3x3_block(128, 256, 4, use_bn),
+                    conv3x3_block(256, 512, 4, use_bn),
+                    conv3x3_block(512, 512, 4, use_bn)]
         self.conv = nn.Sequential(*net)
         self.flatten = Flatten()
         self.fc = nn.Sequential(nn.Linear(512 * final_size ** 2, 4096),
@@ -83,7 +83,7 @@ def vgg16(num_classes, in_size = 224):
 
 
 def vgg16_bn(num_classes, in_size = 224):
-    return VGG(num_classes, 16, in_size, batch_norm = True)
+    return VGG(num_classes, 16, in_size, use_batch_norm = True)
 
 
 def vgg19(num_classes, in_size = 224):
@@ -91,7 +91,7 @@ def vgg19(num_classes, in_size = 224):
 
 
 def vgg19_bn(num_classes, in_size = 224):
-    return VGG(num_classes, 19, in_size, batch_norm = True)
+    return VGG(num_classes, 19, in_size, use_batch_norm = True)
 
 
 if __name__ == '__main__':

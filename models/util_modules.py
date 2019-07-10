@@ -24,10 +24,10 @@ class Flatten(nn.Module):
 
 
 def conv_bn_relu(in_channels, out_channels, kernel_size, stride = 1, padding = 0,
-                 batch_norm = False, dilation = 1, groups = 1, bias = True):
+                 use_batch_norm = True, dilation = 1, groups = 1, bias = True):
     block = [nn.Conv2d(in_channels, out_channels, kernel_size, stride,
                      padding, dilation, groups, bias)]
-    if batch_norm:
+    if use_batch_norm:
         block += [nn.BatchNorm2d(out_channels)]
     block += [nn.ReLU(inplace = True)]
     return nn.Sequential(*block)

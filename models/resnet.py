@@ -14,7 +14,7 @@ __date__ = '2019/7/10 00:23'
 import torch.nn as nn
 
 from .util_modules import Flatten
-from .resnet_module import *
+from .resnet_modules import *
 
 __all__ = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
            'resnet20_cifar', 'resnet32_cifar', 'resnet44_cifar',

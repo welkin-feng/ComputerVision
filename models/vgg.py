@@ -13,27 +13,17 @@ __date__ = '2019/6/24 12:11'
 
 import torch.nn as nn
 
-from .util_modules import Flatten, Conv_bn_relu
+from .util_modules import Flatten, conv_bn_relu
 
 __all__ = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
 
 
-class Conv3x3_block(nn.Module):
-    """  """
-
-    def __init__(self, in_channels, out_channels, depth, batch_norm):
-        """ Constructor for Conv_ReLU """
-        super().__init__()
-        conv_list = [Conv_bn_relu(in_channels, out_channels, 3, 1, 1, batch_norm)]
-        for _ in range(depth - 1):
-            conv_list += [Conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm)]
-        self.conv = nn.Sequential(*conv_list)
-        self.maxpool = nn.MaxPool2d(kernel_size = 2)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.maxpool(x)
-        return x
+def conv3x3_block(in_channels, out_channels, depth, batch_norm):
+    block = [conv_bn_relu(in_channels, out_channels, 3, 1, 1, batch_norm)]
+    for _ in range(depth - 1):
+        block += [conv_bn_relu(out_channels, out_channels, 3, 1, 1, batch_norm)]
+    block += [nn.MaxPool2d(kernel_size = 2)]
+    return nn.Sequential(*block)
 
 
 class VGG(nn.Module):
@@ -48,16 +38,16 @@ class VGG(nn.Module):
 
     def _init_model(self, num_classes, depth, batch_norm, in_size):
         final_size = in_size // 32
-        net = [Conv3x3_block(3, 64, 2, batch_norm),
-               Conv3x3_block(64, 128, 2, batch_norm)]
+        net = [conv3x3_block(3, 64, 2, batch_norm),
+               conv3x3_block(64, 128, 2, batch_norm)]
         if depth == 16:
-            net += [Conv3x3_block(128, 256, 3, batch_norm),
-                    Conv3x3_block(256, 512, 3, batch_norm),
-                    Conv3x3_block(512, 512, 3, batch_norm)]
+            net += [conv3x3_block(128, 256, 3, batch_norm),
+                    conv3x3_block(256, 512, 3, batch_norm),
+                    conv3x3_block(512, 512, 3, batch_norm)]
         elif depth == 19:
-            net += [Conv3x3_block(128, 256, 4, batch_norm),
-                    Conv3x3_block(256, 512, 4, batch_norm),
-                    Conv3x3_block(512, 512, 4, batch_norm)]
+            net += [conv3x3_block(128, 256, 4, batch_norm),
+                    conv3x3_block(256, 512, 4, batch_norm),
+                    conv3x3_block(512, 512, 4, batch_norm)]
         self.conv = nn.Sequential(*net)
         self.flatten = Flatten()
         self.fc = nn.Sequential(nn.Linear(512 * final_size ** 2, 4096),
@@ -81,8 +71,8 @@ class VGG(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def forward(self, input):
-        output = self.conv(input)
+    def forward(self, x):
+        output = self.conv(x)
         output = self.flatten(output)
         output = self.fc(output)
         return output

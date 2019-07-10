@@ -83,8 +83,8 @@ class MobileNet(nn.Module):
                 nn.init.xavier_normal_(m.weight.data)
                 m.bias.data.zero_()
 
-    def forward(self, input):
-        output = self.conv(input)
+    def forward(self, x):
+        output = self.conv(x)
         output = self.avgpool(output)
         output = self.flatten(output)
         output = self.fc(output)

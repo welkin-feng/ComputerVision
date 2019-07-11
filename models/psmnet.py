@@ -19,10 +19,11 @@ from .psmnet_modules import CNN_Module, SPP_Module, CostVolume, StackedHourglass
 class PSM_Net(nn.Module):
     """  """
 
-    def __init__(self, max_disparity = 128, spp_scales = (64, 32, 16, 8)):
+    def __init__(self, max_disparity = 192, spp_scales = (64, 32, 16, 8)):
         """ Constructor for PSM_Net """
         super().__init__()
         self._init_model(max_disparity, spp_scales)
+        self._initialize_weights()
 
     def _init_model(self, max_disparity, spp_scales):
         self.cnn = CNN_Module()
@@ -59,3 +60,11 @@ class PSM_Net(nn.Module):
 
         out3 = self.cnn_3d(cost)
         return out3
+
+
+def psm_net(max_disparity = 192, in_size_short = None):
+    if in_size_short:
+        spp_scales = (in_size_short // 4, in_size_short // 8, in_size_short // 16, in_size_short // 32)
+        return PSM_Net(max_disparity, spp_scales)
+
+    return PSM_Net(max_disparity)

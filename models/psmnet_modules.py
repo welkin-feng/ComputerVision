@@ -18,8 +18,6 @@ import torch.nn.functional as F
 from .util_modules import conv_bn_relu
 
 
-
-
 class BasicResidualBlock(nn.Module):
     """  """
     expansion = 1

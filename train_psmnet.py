@@ -72,17 +72,17 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
 
         # log
         if (batch_index + 1) % config.print_interval == 0:
-            logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-                batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
+            logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.6f}".format(
+                batch_index + 1, len(train_loader), train_loss, 100.0 * (1 - train_acc), get_current_lr(optimizer)))
 
-    logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-        batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
+    logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.6f}".format(
+        batch_index + 1, len(train_loader), train_loss, 100.0 * (1 - train_acc), get_current_lr(optimizer)))
 
     end = time.time()
     logger.info("   == cost time: {:.4f}s".format(end - start))
 
     writer.add_scalar('train_loss', train_loss, epoch)
-    writer.add_scalar('train_acc', train_acc, epoch)
+    writer.add_scalar('train_err', 1 - train_acc, epoch)
 
     return train_loss, train_acc
 
@@ -112,10 +112,10 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
             test_loss = _test_loss / (batch_index + 1)
             test_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = False)
 
-    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
+    logger.info("   == test loss: {:.3f} | test err: {:6.3f}%".format(test_loss, 100.0 * (1 - test_acc)))
 
     writer.add_scalar('test_loss', test_loss, epoch)
-    writer.add_scalar('test_acc', test_acc, epoch)
+    writer.add_scalar('test_err', 1 - test_acc, epoch)
     # Save checkpoint.
     test_acc = 100. * test_loss
     state = {
@@ -208,8 +208,7 @@ def start_training(work_path, resume = False, config_dict = None):
     if args.work_path:
         ckpt_file_name = args.work_path + '/' + config.ckpt_name + '.pth.tar'
         if args.resume:
-            best_prec, last_epoch = load_checkpoint(
-                ckpt_file_name, net, optimizer = optimizer)
+            best_prec, last_epoch = load_checkpoint(ckpt_file_name, net, optimizer = optimizer)
 
     # 加载训练数据 并进行数据扩增
     # load training data & do data augmentation
@@ -246,7 +245,7 @@ def start_training(work_path, resume = False, config_dict = None):
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)
 
-    logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(best_prec))
+    logger.info("======== Training Finished.   best_test_err: {:.3f}% ========".format(100 - best_prec))
     del args, writer, logger, config, last_epoch, best_prec
 
 

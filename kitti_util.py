@@ -11,8 +11,6 @@ File Name:  kitti_util.py
 __author__ = 'Welkin'
 __date__ = '2019/7/13 16:25'
 
-import numpy as np
-
 from torch.utils import data
 from dataloader.kitti_loader import *
 
@@ -57,7 +55,7 @@ def get_data_loader(transform_train, transform_test, config):
 def compute_npx_error(prediction, gt, n):
     # computing n-px error
     mask = gt > 0
-    dif = np.abs(gt[mask] - prediction[mask])
+    dif = (gt[mask] - prediction[mask]).abs()
 
     correct = (dif < n) | (dif < gt[mask] * 0.05)  # Tensor, size [N, H, W]
 

@@ -47,12 +47,13 @@ class BasicResidualBlock(nn.Module):
 
 
 def conv3x3x3_bn_relu(in_channels, out_channels, kernel_size = 3, stride = 1, padding = 1,
-                      use_batch_norm = True, dilation = 1, groups = 1, bias = True):
+                      use_relu = True, dilation = 1, groups = 1, bias = True):
     block = [nn.Conv3d(in_channels, out_channels, kernel_size, stride,
                        padding, dilation, groups, bias)]
-    if use_batch_norm:
-        block += [nn.BatchNorm3d(out_channels)]
-    block += [nn.ReLU(inplace = True)]
+
+    block += [nn.BatchNorm3d(out_channels)]
+    if use_relu:
+        block += [nn.ReLU(inplace = True)]
     return nn.Sequential(*block)
 
 
@@ -179,7 +180,7 @@ class StackedHourglass3dCNN(nn.Module):
         )
         self.conv1 = nn.Sequential(
             conv3x3x3_bn_relu(32, 32),
-            conv3x3x3_bn_relu(32, 32)
+            conv3x3x3_bn_relu(32, 32, use_relu = False)
         )
 
         self.stack1_1 = nn.Sequential(
@@ -191,35 +192,37 @@ class StackedHourglass3dCNN(nn.Module):
         self.stack1_3 = nn.ConvTranspose3d(64, 64, 3, stride = 2, padding = 1, output_padding = 1)
         self.stack1_4 = nn.ConvTranspose3d(64, 32, 3, stride = 2, padding = 1, output_padding = 1)
 
+        self.classifier_1 = nn.Sequential(
+            conv3x3x3_bn_relu(32, 32),
+            conv3x3x3_bn_relu(32, 1, use_relu = False)
+        )
+
         self.stack2_1 = nn.Sequential(
             conv3x3x3_bn_relu(32, 64, stride = 2),
-            conv3x3x3_bn_relu(64, 64))
+            conv3x3x3_bn_relu(64, 64, use_relu = False))
         self.stack2_2 = nn.Sequential(
             conv3x3x3_bn_relu(64, 64, stride = 2),
             conv3x3x3_bn_relu(64, 64))
         self.stack2_3 = nn.ConvTranspose3d(64, 64, 3, stride = 2, padding = 1, output_padding = 1)
         self.stack2_4 = nn.ConvTranspose3d(64, 32, 3, stride = 2, padding = 1, output_padding = 1)
 
+        self.classifier_2 = nn.Sequential(
+            conv3x3x3_bn_relu(32, 32),
+            conv3x3x3_bn_relu(32, 1, use_relu = False)
+        )
+
         self.stack3_1 = nn.Sequential(
             conv3x3x3_bn_relu(32, 64, stride = 2),
-            conv3x3x3_bn_relu(64, 64))
+            conv3x3x3_bn_relu(64, 64, use_relu = False))
         self.stack3_2 = nn.Sequential(
             conv3x3x3_bn_relu(64, 64, stride = 2),
             conv3x3x3_bn_relu(64, 64))
         self.stack3_3 = nn.ConvTranspose3d(64, 64, 3, stride = 2, padding = 1, output_padding = 1)
         self.stack3_4 = nn.ConvTranspose3d(64, 32, 3, stride = 2, padding = 1, output_padding = 1)
 
-        self.output_1 = nn.Sequential(
+        self.classifier_3 = nn.Sequential(
             conv3x3x3_bn_relu(32, 32),
-            conv3x3x3_bn_relu(32, 1)
-        )
-        self.output_2 = nn.Sequential(
-            conv3x3x3_bn_relu(32, 32),
-            conv3x3x3_bn_relu(32, 1)
-        )
-        self.output_3 = nn.Sequential(
-            conv3x3x3_bn_relu(32, 32),
-            conv3x3x3_bn_relu(32, 1)
+            conv3x3x3_bn_relu(32, 1, use_relu = False)
         )
 
     def forward(self, x):
@@ -231,19 +234,21 @@ class StackedHourglass3dCNN(nn.Module):
         out_stack1_3 = self.stack1_3(out) + out_stack1_1
         out = self.stack1_4(out_stack1_3) + out_conv1
 
+        out1 = self.classifier_1(out)
+
         out = self.stack2_1(out) + out_stack1_3
         out = self.stack2_2(out)
         out_stack2_3 = self.stack2_3(out) + out_stack1_1
         out = self.stack2_4(out_stack2_3) + out_conv1
+
+        out2 = self.classifier_2(out) + out1
 
         out = self.stack3_1(out) + out_stack2_3
         out = self.stack3_2(out)
         out = self.stack3_3(out) + out_stack1_1
         out = self.stack3_4(out) + out_conv1
 
-        out1 = self.output_1(out)
-        out2 = self.output_2(out) + out1
-        out = self.output_3(out) + out2
+        out = self.classifier_3(out) + out2
 
         if self.training:
             out, out1, out2 = map(lambda x: F.interpolate(x, scale_factor = 4, mode = 'trilinear'), (out, out1, out2))

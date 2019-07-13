@@ -143,6 +143,17 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
 
 def start_training(work_path, resume = False, config_dict = None):
+    """
+
+    Args:
+        work_path: `event`, `log`, `checkpoint`保存/读取路径 及 `config.yaml`所在路径
+
+        resume: 是否根据本地ckpt恢复模型，若为Ture，则ckpt文件应该位于`work_path`中
+        config_dict:
+
+    Returns:
+
+    """
     global args, writer, logger, config, best_prec
 
     # 设置路径 work_path
@@ -242,7 +253,7 @@ def start_training(work_path, resume = False, config_dict = None):
         lr = get_current_lr(optimizer)
         writer.add_scalar('learning_rate', lr, epoch)
         # train one epoch
-        train_step(train_loader, net, criterion, optimizer, epoch, device)
+        train_loss, _ = train_step(train_loader, net, criterion, optimizer, epoch, device)
         # validate network
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)

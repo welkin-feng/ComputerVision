@@ -44,9 +44,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -u train_simple.py --work-path ./experiments
 
 We use yaml file ``config.yaml`` to save the parameters, check any files in `./experimets` for more details.  
 You can see the training curve via tensorboard, ``tensorboard --logdir path-to-event --port your-port``. (Not verified)  
-The training log will be dumped via logging, check ``log.txt`` in your work path.
-
-
+The training log will be dumped via logging, check ``log.txt`` in your work path.  
 
 ## Results on CIFAR
 

@@ -90,7 +90,7 @@ class AlexNet_cifar10(AlexNet):
         super().__init__(num_classes, in_size)
 
     def _init_model(self, num_classes, in_size):
-        mid_size = (in_size + 23) // 24
+        final_size = (in_size + 23) // 24
 
         self.conv = nn.Sequential(
             nn.Conv2d(3, 96, kernel_size = 11, stride = 3, padding = 5),
@@ -110,7 +110,7 @@ class AlexNet_cifar10(AlexNet):
             nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
         )
         self.fc = nn.Sequential(
-            nn.Linear(256 * mid_size ** 2, 4096),
+            nn.Linear(256 * final_size ** 2, 4096),
             nn.ReLU(inplace = True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -125,7 +125,7 @@ def alexnet(num_classes, in_size = 227):
 
 
 def alexnet_cifar10(num_classes, in_size = 32):
-    return AlexNet(num_classes, in_size)
+    return AlexNet_cifar10(num_classes, in_size)
 
 
 if __name__ == '__main__':

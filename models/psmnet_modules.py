@@ -163,7 +163,7 @@ class Basic3dCNN(nn.Module):
 
 def disparity_regression(x: torch.Tensor):
     out = F.softmax(x, dim = 2)
-    out = (x * out).sum(dim = 2)
+    out = (x * out).sum(dim = (1, 2))
     return out
 
 

@@ -101,7 +101,10 @@ class RandomCrop():
 
     def __call__(self, sample):
         new_h, new_w = self.size
-        h, w, _ = sample['left'].shape
+        if isinstance(sample['left'], Image.Image):
+            w, h = sample['left'].size
+        else:
+            h, w, _ = sample['left'].shape
         top = np.random.randint(0, h - new_h)
         left = np.random.randint(0, w - new_w)
 

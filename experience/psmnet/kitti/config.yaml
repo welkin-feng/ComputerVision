@@ -35,7 +35,7 @@ augmentation:
 # optimizer
 optimize:
   # type: SGD or Adam
-  type: SGD
+  type: Adam
   weight_decay: 0.0005
   # only for SGD
   momentum: 0.9
@@ -45,11 +45,11 @@ optimize:
 lr_scheduler:
   # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
   type: ADAPTIVE
-  base_lr: 0.1
+  base_lr: 0.01
   # for ADAPTIVE, STEP and MultiSTEP
   lr_mults: 0.1
   # for ADAPTIVE, COSINE and HTD
   min_lr: 0.0
   # only for ADAPTIVE
-  mode: min
+  mode: max
   patience: 20

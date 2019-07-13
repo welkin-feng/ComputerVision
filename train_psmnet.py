@@ -26,7 +26,7 @@ from tensorboardX import SummaryWriter
 from easydict import EasyDict
 from models.psmnet import psm_net
 from util import *
-from dataloader import kitti_loader
+from kitti_util import *
 
 
 def train_step(train_loader, net, criterion, optimizer, epoch, device):
@@ -35,9 +35,11 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
     start = time.time()
     net.train()
 
-    train_loss = 0
+    _train_loss, train_loss = 0, 0
     correct = 0
     total = 0
+    train_acc = 0
+
     logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
 
     for batch_index, (inputs, targets) in enumerate(train_loader):
@@ -62,25 +64,22 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         optimizer.step()
 
         # count the loss
-        train_loss += loss.item()
-        # todo: calculate acc
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        correct += predicted.eq(targets).sum().item()
+        _train_loss += loss.item()
+        train_loss = _train_loss / (batch_index + 1)
 
+        # calculate acc
+        train_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = True)
+
+        # log
         if (batch_index + 1) % config.print_interval == 0:
             logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-                batch_index + 1, len(train_loader),
-                train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
+                batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
 
     logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-        batch_index + 1, len(train_loader),
-        train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
+        batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
 
     end = time.time()
     logger.info("   == cost time: {:.4f}s".format(end - start))
-    train_loss = train_loss / (batch_index + 1)
-    train_acc = correct / total
 
     writer.add_scalar('train_loss', train_loss, epoch)
     writer.add_scalar('train_acc', train_acc, epoch)
@@ -93,9 +92,10 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
     net.eval()
 
-    test_loss = 0
+    _test_loss, test_loss = 0, 0
     correct = 0
     total = 0
+    test_acc = 0
 
     logger.info(" === Validate ===".format(epoch + 1, config.epochs))
 
@@ -107,20 +107,17 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
                 outputs = outputs[0]
             loss = criterion(outputs, targets)
 
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+            # calculate loss and acc
+            _test_loss += loss.item()
+            test_loss = _test_loss / (batch_index + 1)
+            test_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = False)
 
-    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
-        test_loss / (batch_index + 1), 100.0 * correct / total))
+    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
 
-    test_loss = test_loss / (batch_index + 1)
-    test_acc = correct / total
     writer.add_scalar('test_loss', test_loss, epoch)
     writer.add_scalar('test_acc', test_acc, epoch)
     # Save checkpoint.
-    test_acc = 100. * correct / total
+    test_acc = 100. * test_loss
     state = {
         'state_dict': net.state_dict(),
         'best_prec': best_prec,
@@ -214,14 +211,14 @@ def start_training(work_path, resume = False, config_dict = None):
             best_prec, last_epoch = load_checkpoint(
                 ckpt_file_name, net, optimizer = optimizer)
 
-    # todo: 加载训练数据 并进行数据扩增
+    # 加载训练数据 并进行数据扩增
     # load training data & do data augmentation
-    transform_train = transforms.Compose(kitti_loader.data_augmentation(config))
-    transform_test = transforms.Compose(kitti_loader.data_augmentation(config))
+    transform_train = transforms.Compose(data_augmentation(config))
+    transform_test = transforms.Compose(data_augmentation(config))
 
-    # todo: 得到可用于torch的DataLoader
+    # 得到可用于torch的DataLoader
     # get data loader
-    train_loader, test_loader = kitti_loader.get_data_loader(transform_train, transform_test, config)
+    train_loader, test_loader = get_data_loader(transform_train, transform_test, config)
 
     # 得到用于更新lr的函数
     # get lr scheduler

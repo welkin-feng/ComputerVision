@@ -49,8 +49,11 @@ CUDA_VISIBLE_DEVICES=0,1 python -u train_simple.py --work-path ./experiments/inc
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -u train_simple.py --work-path ./experiments/resnet/cifar10
 ``` 
 
+在``config.yaml``中保存训练参数  
 We use yaml file ``config.yaml`` to save the parameters, check any files in `./experimets` for more details.  
+可以使用``tensorboard --logdir path-to-event --port your-port`` 查看训练曲线  
 You can see the training curve via tensorboard, ``tensorboard --logdir path-to-event --port your-port``. (Not verified)  
+log保存在``log.txt``中  
 The training log will be dumped via logging, check ``log.txt`` in your work path.
 
 ## Results on CIFAR

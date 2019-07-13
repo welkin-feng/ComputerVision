@@ -4,7 +4,7 @@
 
 Project Name:   ComputerVision 
 
-File Name:  train_simple.py
+File Name:  train.py
 
 """
 

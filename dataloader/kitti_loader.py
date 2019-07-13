@@ -126,6 +126,7 @@ class ToTensor():
 
         if 'disp' in sample:
             sample['disp'] = F.to_tensor(sample['disp'])
+            sample['disp'] = sample['disp'].float()
 
         return sample
 

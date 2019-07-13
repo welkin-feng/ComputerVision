@@ -243,13 +243,13 @@ class StackedHourglass3dCNN(nn.Module):
 
         out1 = self.output_1(out)
         out2 = self.output_2(out) + out1
-        out3 = self.output_3(out) + out2
+        out = self.output_3(out) + out2
 
         if self.training:
-            out1, out2, out3 = map(lambda x: F.interpolate(x, scale_factor = 4, mode = 'trilinear'), (out1, out2, out3))
-            out1, out2, out3 = map(disparity_regression, (out1, out2, out3))
-            return out1, out2, out3
+            out, out1, out2 = map(lambda x: F.interpolate(x, scale_factor = 4, mode = 'trilinear'), (out, out1, out2))
+            out, out1, out2 = map(disparity_regression, (out, out1, out2))
+            return out, out1, out2
 
-        out3 = F.interpolate(out3, scale_factor = 4, mode = 'trilinear')
-        out3 = disparity_regression(out3)
-        return out3
+        out = F.interpolate(out, scale_factor = 4, mode = 'trilinear')
+        out = disparity_regression(out)
+        return out

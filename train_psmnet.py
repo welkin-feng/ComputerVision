@@ -72,10 +72,10 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
 
         # log
         if (batch_index + 1) % config.print_interval == 0:
-            logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.6f}".format(
+            logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.2e}".format(
                 batch_index + 1, len(train_loader), train_loss, 100.0 * (1 - train_acc), get_current_lr(optimizer)))
 
-    logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.6f}".format(
+    logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train err: {:6.3f}% | lr: {:.2e}".format(
         batch_index + 1, len(train_loader), train_loss, 100.0 * (1 - train_acc), get_current_lr(optimizer)))
 
     end = time.time()

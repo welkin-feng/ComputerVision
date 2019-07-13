@@ -205,6 +205,7 @@ def start_training(work_path, resume = False, config_dict = None):
     # resume from a checkpoint
     last_epoch = -1
     best_prec = 0
+    train_loss = None
     if args.work_path:
         ckpt_file_name = args.work_path + '/' + config.ckpt_name + '.pth.tar'
         if args.resume:
@@ -232,7 +233,10 @@ def start_training(work_path, resume = False, config_dict = None):
         # adjust learning rate
         if lr_scheduler:
             if config.lr_scheduler.type == 'ADAPTIVE':
-                lr_scheduler.step(best_prec, epoch)
+                if config.lr_scheduler.mode == 'max':
+                    lr_scheduler.step(best_prec, epoch)
+                elif config.lr_scheduler.mode == 'min':
+                    lr_scheduler.step(train_loss, epoch)
             else:
                 lr_scheduler.step(epoch)
         lr = get_current_lr(optimizer)

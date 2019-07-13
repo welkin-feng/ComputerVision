@@ -42,7 +42,7 @@ def get_data_loader(transform_train, transform_test, config):
             root = config.data_path, mode = 'train', transform = transform_train, download = False)
 
         testset = KITTI2015(
-            root = config.data_path, mode = 'validation', transform = transform_test, download = False)
+            root = config.data_path, mode = 'validate', transform = transform_test, download = False)
     elif config.dataset.lower() == "kitti2012":
         pass
 

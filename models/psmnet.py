@@ -45,7 +45,8 @@ class PSM_Net(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def forward(self, left_img, right_img):
+    def forward(self, imgs):
+        left_img, right_img = imgs
         l_conv2, l_conv4 = self.cnn(left_img)
         r_conv2, r_conv4 = self.cnn(right_img)
 
@@ -62,8 +63,9 @@ class PSM_Net(nn.Module):
         return out3
 
 
-def psm_net(max_disparity = 192, in_size_short = None):
-    if in_size_short:
+def psm_net(max_disparity = 192, in_size = None):
+    if in_size:
+        in_size_short = min(in_size)
         spp_scales = (in_size_short // 4, in_size_short // 8, in_size_short // 16, in_size_short // 32)
         return PSM_Net(max_disparity, spp_scales)
 

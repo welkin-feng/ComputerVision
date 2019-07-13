@@ -1,10 +1,10 @@
 # net architecture
-architecture: alexnet
+architecture: alexnet_cifar10
 
 # log and checkpoint
 data_path: ./data
 ckpt_path: ./
-ckpt_name: alexnet
+ckpt_name: alexnet_cifar10
 
 # datasets
 num_classes: 10

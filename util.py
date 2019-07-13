@@ -24,9 +24,8 @@ import torchvision.transforms as transforms
 
 from torch.utils.data import DataLoader
 
-__all__ = ['Cutout', 'Logger',
-           'count_parameters', 'data_augmentation',
-           'save_checkpoint', 'load_checkpoint',
+__all__ = ['Cutout', 'Logger', 'count_parameters',
+           'save_checkpoint', 'load_checkpoint', 'data_augmentation',
            'get_data_loader', 'mixup_data', 'mixup_criterion',
            'get_current_lr', 'adjust_learning_rate',
            'get_learning_rate_scheduler']
@@ -82,6 +81,28 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def save_checkpoint(state, is_best, filename):
+    torch.save(state, filename + '.pth.tar')
+    if is_best:
+        shutil.copyfile(filename + '.pth.tar', filename + '_best.pth.tar')
+
+
+def load_checkpoint(path, model, optimizer = None):
+    if os.path.isfile(path):
+        logging.info("=== loading checkpoint '{}' ===".format(path))
+
+        checkpoint = torch.load(path)
+        model.load_state_dict(checkpoint['state_dict'], strict = False)
+
+        if optimizer is not None:
+            best_prec = checkpoint['best_prec']
+            last_epoch = checkpoint['last_epoch']
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            logging.info("=== done. also loaded optimizer from checkpoint '{}' (epoch {}) ===".format(
+                path, last_epoch + 1))
+            return best_prec, last_epoch
+
+
 def data_augmentation(config, is_train = True):
     aug = []
     if is_train:
@@ -107,28 +128,6 @@ def data_augmentation(config, is_train = True):
         aug.append(Cutout(n_holes = config.augmentation.holes,
                           length = config.augmentation.length))
     return aug
-
-
-def save_checkpoint(state, is_best, filename):
-    torch.save(state, filename + '.pth.tar')
-    if is_best:
-        shutil.copyfile(filename + '.pth.tar', filename + '_best.pth.tar')
-
-
-def load_checkpoint(path, model, optimizer = None):
-    if os.path.isfile(path):
-        logging.info("=== loading checkpoint '{}' ===".format(path))
-
-        checkpoint = torch.load(path)
-        model.load_state_dict(checkpoint['state_dict'], strict = False)
-
-        if optimizer is not None:
-            best_prec = checkpoint['best_prec']
-            last_epoch = checkpoint['last_epoch']
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            logging.info("=== done. also loaded optimizer from checkpoint '{}' (epoch {}) ===".format(
-                path, last_epoch + 1))
-            return best_prec, last_epoch
 
 
 def get_data_loader(transform_train, transform_test, config):

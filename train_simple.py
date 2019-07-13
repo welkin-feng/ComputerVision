@@ -26,6 +26,7 @@ from tensorboardX import SummaryWriter
 from easydict import EasyDict
 from models import *
 from util import *
+from cifar_util import *
 
 
 def train_step(train_loader, net, criterion, optimizer, epoch, device):
@@ -34,9 +35,11 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
     start = time.time()
     net.train()
 
-    train_loss = 0
+    _train_loss, train_loss = 0, 0
     correct = 0
     total = 0
+    train_acc = 0
+
     logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, config.epochs))
 
     for batch_index, (inputs, targets) in enumerate(train_loader):
@@ -45,10 +48,8 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         if config.mixup:
             inputs, targets_a, targets_b, lam = mixup_data(inputs, targets,
                                                            config.mixup_alpha, device)
-
             outputs = net(inputs)
-            loss = mixup_criterion(
-                criterion, outputs, targets_a, targets_b, lam)
+            loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam)
         else:
             outputs = net(inputs)
             if isinstance(outputs, tuple):
@@ -67,29 +68,27 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         # update weight
         optimizer.step()
 
-        # count the loss and acc
-        train_loss += loss.item()
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        if config.mixup:
-            correct += (lam * predicted.eq(targets_a).sum().item()
-                        + (1 - lam) * predicted.eq(targets_b).sum().item())
-        else:
-            correct += predicted.eq(targets).sum().item()
+        # count the loss
+        _train_loss += loss.item()
+        train_loss = _train_loss / (batch_index + 1)
 
+        # calculate acc
+        if config.mixup:
+            train_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = True,
+                                                       lam = lam, targets_a = targets_a, targets_b = targets_b)
+        else:
+            train_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = True)
+
+        # log
         if (batch_index + 1) % config.print_interval == 0:
             logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-                batch_index + 1, len(train_loader),
-                train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
+                batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
 
     logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.6f}".format(
-        batch_index + 1, len(train_loader),
-        train_loss / (batch_index + 1), 100.0 * correct / total, get_current_lr(optimizer)))
+        batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(optimizer)))
 
     end = time.time()
     logger.info("   == cost time: {:.4f}s".format(end - start))
-    train_loss = train_loss / (batch_index + 1)
-    train_acc = correct / total
 
     writer.add_scalar('train_loss', train_loss, epoch)
     writer.add_scalar('train_acc', train_acc, epoch)
@@ -102,9 +101,10 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
     net.eval()
 
-    test_loss = 0
+    _test_loss, test_loss = 0, 0
     correct = 0
     total = 0
+    test_acc = 0
 
     logger.info(" === Validate ===".format(epoch + 1, config.epochs))
 
@@ -116,20 +116,17 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
                 outputs = outputs[0]
             loss = criterion(outputs, targets)
 
-            test_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+            # calculate loss and acc
+            _test_loss += loss.item()
+            test_loss = _test_loss / (batch_index + 1)
+            test_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = False)
 
-    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(
-        test_loss / (batch_index + 1), 100.0 * correct / total))
+    logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
 
-    test_loss = test_loss / (batch_index + 1)
-    test_acc = correct / total
     writer.add_scalar('test_loss', test_loss, epoch)
     writer.add_scalar('test_acc', test_acc, epoch)
     # Save checkpoint.
-    test_acc = 100. * correct / total
+    test_acc = 100. * test_acc
     state = {
         'state_dict': net.state_dict(),
         'best_prec': best_prec,
@@ -143,6 +140,17 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
 
 
 def start_training(work_path, resume = False, config_dict = None):
+    """
+
+    Args:
+        work_path: `event`, `log`, `checkpoint`保存/读取路径 及 `config.yaml`所在路径
+
+        resume: 是否根据本地ckpt恢复模型，若为Ture，则ckpt文件应该位于`work_path`中
+        config_dict:
+
+    Returns:
+
+    """
     global args, writer, logger, config, best_prec
 
     # 设置路径 work_path
@@ -205,6 +213,7 @@ def start_training(work_path, resume = False, config_dict = None):
     # resume from a checkpoint
     last_epoch = -1
     best_prec = 0
+    train_loss = None
     if args.work_path:
         ckpt_file_name = args.work_path + '/' + config.ckpt_name + '.pth.tar'
         if args.resume:
@@ -232,13 +241,16 @@ def start_training(work_path, resume = False, config_dict = None):
         # adjust learning rate
         if lr_scheduler:
             if config.lr_scheduler.type == 'ADAPTIVE':
-                lr_scheduler.step(best_prec, epoch)
+                if config.lr_scheduler.mode == 'max':
+                    lr_scheduler.step(best_prec, epoch)
+                elif config.lr_scheduler.mode == 'min':
+                    lr_scheduler.step(train_loss, epoch)
             else:
                 lr_scheduler.step(epoch)
         lr = get_current_lr(optimizer)
         writer.add_scalar('learning_rate', lr, epoch)
         # train one epoch
-        train_step(train_loader, net, criterion, optimizer, epoch, device)
+        train_loss, _ = train_step(train_loader, net, criterion, optimizer, epoch, device)
         # validate network
         if epoch == 0 or (epoch + 1) % config.eval_freq == 0 or epoch == config.epochs - 1:
             test(test_loader, net, criterion, optimizer, epoch, device)

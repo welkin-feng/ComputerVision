@@ -1,0 +1,55 @@
+# net architecture
+architecture: psm_net
+
+# data path
+data_path: ./data
+
+# checkpoint name for save/load
+ckpt_name: psm_net
+
+# train/test mode
+mode: train
+
+# datasets
+max_disparity: 192
+dataset: kitti2015
+
+# training parameters
+use_gpu: True
+input_size: [256, 512]
+epochs: 10
+batch_size: 16
+test_batch: 20
+eval_freq: 2
+print_interval: 5
+workers: 4
+
+# multi classifiers used during training
+num_classifier: 3
+classifier_weight: [1.0, 0.5, 0.7]
+
+augmentation:
+  normalize: True
+  random_crop: True
+
+# optimizer
+optimize:
+  # type: SGD or Adam
+  type: SGD
+  weight_decay: 0.0005
+  # only for SGD
+  momentum: 0.9
+  nesterov: True
+
+# learning rate scheduler
+lr_scheduler:
+  # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
+  type: ADAPTIVE
+  base_lr: 0.1
+  # for ADAPTIVE, STEP and MultiSTEP
+  lr_mults: 0.1
+  # for ADAPTIVE, COSINE and HTD
+  min_lr: 0.0
+  # only for ADAPTIVE
+  mode: min
+  patience: 20

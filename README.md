@@ -52,6 +52,6 @@ The training log will be dumped via logging, check ``log.txt`` in your work path
 | :-------------------- | :----: | :--------: | :---: | :--------------: | :---------------: |
 | alexnet               | 24.7M  |    128     |  250  |      82.70       |         -         |
 | inception_v1          |  7.2M  |    128     |  250  |      91.52       |         -         |
-| vgg19_bn              | 38.9M  |    128     |  250  |      93.24       |         -         |
-| resnet                |  x.xM  |    128     |  250  |      xx.xx       |         -         |
+| vgg19_bn              | 38.9M  |    128     |  250  |      93.37       |         -         |
+| resnet                |  1.7M  |    128     |  250  |      90.47       |         -         |
 | mobilenet_v1          |  3.2M  |    128     |  200  |      86.01       |         -         |

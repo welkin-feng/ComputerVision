@@ -11,6 +11,7 @@ File Name:  kitti_util.py
 __author__ = 'Welkin'
 __date__ = '2019/7/13 16:25'
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -80,6 +81,6 @@ class SmoothL1Loss_mask(nn.SmoothL1Loss):
         self.max_disparity = max_disparity
         super().__init__(size_average, reduce, reduction)
 
-    def forward(self, input, target):
+    def forward(self, input: torch.Tensor, target: torch.Tensor):
         mask = target < self.max_disparity
-        return F.multilabel_margin_loss(input[mask], target[mask], reduction = self.reduction)
+        return F.multilabel_margin_loss(input[mask], target[mask].long(), reduction = self.reduction)

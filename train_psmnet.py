@@ -184,7 +184,7 @@ def start_training(work_path, resume = False, config_dict = None):
 
     # 设置loss计算函数
     # define loss
-    criterion = nn.SmoothL1Loss()
+    criterion = SmoothL1Loss_mask(config.max_disparity)
 
     # 设置optimizer用于反向传播梯度
     # define optimizer

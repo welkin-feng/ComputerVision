@@ -11,6 +11,9 @@ File Name:  kitti_util.py
 __author__ = 'Welkin'
 __date__ = '2019/7/13 16:25'
 
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.utils import data
 from dataloader.kitti_loader import *
 
@@ -52,9 +55,9 @@ def get_data_loader(transform_train, transform_test, config):
     return train_loader, test_loader
 
 
-def compute_npx_error(prediction, gt, n):
+def compute_npx_error(prediction, gt, max_disparity, n):
     # computing n-px error
-    mask = gt > 0
+    mask = gt < max_disparity
     dif = (gt[mask] - prediction[mask]).abs()
 
     correct = (dif < n) | (dif < gt[mask] * 0.05)  # Tensor, size [N, H, W]
@@ -67,6 +70,16 @@ def compute_npx_error(prediction, gt, n):
 
 def calculate_acc(outputs, targets, config, correct = 0, total = 0, is_train = True, **kwargs):
     if config.dataset in ['kitti2015', 'kitti2012', 'sceneflow']:
-        correct, total = compute_npx_error(outputs, targets, n = 5)
+        correct, total = compute_npx_error(outputs, targets, config.max_disparity, n = 3)
         train_acc = correct / total
     return train_acc, correct, total
+
+
+class SmoothL1Loss_mask(nn.SmoothL1Loss):
+    def __init__(self, max_disparity, size_average = None, reduce = None, reduction = 'mean'):
+        self.max_disparity = max_disparity
+        super().__init__(size_average, reduce, reduction)
+
+    def forward(self, input, target):
+        mask = target < self.max_disparity
+        return F.multilabel_margin_loss(input[mask], target[mask], reduction = self.reduction)

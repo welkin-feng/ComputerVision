@@ -56,10 +56,10 @@ def get_data_loader(transform_train, transform_test, config):
     return train_loader, test_loader
 
 
-def compute_npx_error(prediction, gt, n, max_disparity = None):
+def compute_npx_error(prediction, gt, n, use_mask = False):
     # computing n-px error
-    if max_disparity:
-        mask = gt < max_disparity
+    if use_mask:
+        mask = gt > 0
         prediction = prediction[mask]
         gt = gt[mask]
     dif = (gt - prediction).abs()
@@ -77,6 +77,6 @@ def calculate_acc(outputs, targets, config, correct = 0, total = 0, mask = None,
         if mask is not None:
             correct, total = compute_npx_error(outputs[mask], targets[mask], n = 3)
         else:
-            correct, total = compute_npx_error(outputs, targets, n = 3, max_disparity = config.max_disparity, )
+            correct, total = compute_npx_error(outputs, targets, n = 3)
         train_acc = correct / total
     return train_acc, correct, total

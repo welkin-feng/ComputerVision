@@ -52,7 +52,7 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
             # losses for multi classifier
             loss = 0
             for output, w in zip(outputs, config.classifier_weight):
-                mask = targets < config.max_disparity
+                mask = targets > 0
                 loss += w * criterion(output[mask], targets[mask])
             outputs = outputs[0]
         else:
@@ -107,8 +107,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
             outputs = net(inputs)
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
-            mask = targets < config.max_disparity
-
+            mask = targets > 0
             loss = criterion(outputs[mask], targets[mask])
 
             # calculate loss and acc

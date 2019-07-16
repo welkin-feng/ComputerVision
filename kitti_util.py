@@ -74,21 +74,9 @@ def compute_npx_error(prediction, gt, n, max_disparity = None):
 
 def calculate_acc(outputs, targets, config, correct = 0, total = 0, mask = None, is_train = True, **kwargs):
     if config.dataset in ['kitti2015', 'kitti2012', 'sceneflow']:
-        if mask:
+        if mask is not None:
             correct, total = compute_npx_error(outputs[mask], targets[mask], n = 3)
         else:
             correct, total = compute_npx_error(outputs, targets, n = 3, max_disparity = config.max_disparity, )
         train_acc = correct / total
     return train_acc, correct, total
-
-
-class SmoothL1Loss_mask(nn.SmoothL1Loss):
-    def __init__(self, max_disparity, size_average = None, reduce = None, reduction = 'mean'):
-        self.max_disparity = max_disparity
-        super().__init__(size_average, reduce, reduction)
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor):
-        mask = target < self.max_disparity
-        x = input[mask]
-        y = target[mask]
-        return F.multilabel_margin_loss(x, y, reduction = self.reduction)

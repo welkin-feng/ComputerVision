@@ -83,4 +83,6 @@ class SmoothL1Loss_mask(nn.SmoothL1Loss):
 
     def forward(self, input: torch.Tensor, target: torch.Tensor):
         mask = target < self.max_disparity
-        return F.multilabel_margin_loss(input[mask], target[mask].long(), reduction = self.reduction)
+        x = input[mask]
+        y = target[mask]
+        return F.multilabel_margin_loss(x, y, reduction = self.reduction)

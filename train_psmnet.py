@@ -47,11 +47,13 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         inputs, targets = (inputs[0].to(device), inputs[1].to(device)), targets.to(device)
 
         outputs = net(inputs)
+        mask = None
         if isinstance(outputs, tuple):
             # losses for multi classifier
-            losses = list(map(criterion, outputs, [targets] * len(outputs)))
-            losses = list(map(lambda x, y: x * y, config.classifier_weight, losses))
-            loss = sum(losses[:config.num_classifier])
+            loss = 0
+            for output, w in zip(outputs, config.classifier_weight):
+                mask = targets < config.max_disparity
+                loss += w * criterion(output[mask], targets[mask])
             outputs = outputs[0]
         else:
             loss = criterion(outputs, targets)
@@ -68,7 +70,7 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
         train_loss = _train_loss / (batch_index + 1)
 
         # calculate acc
-        train_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = True)
+        train_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, mask, is_train = True)
 
         # log
         if (batch_index + 1) % config.print_interval == 0:
@@ -105,12 +107,14 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
             outputs = net(inputs)
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
-            loss = criterion(outputs, targets)
+            mask = targets < config.max_disparity
+
+            loss = criterion(outputs[mask], targets[mask])
 
             # calculate loss and acc
             _test_loss += loss.item()
             test_loss = _test_loss / (batch_index + 1)
-            test_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, is_train = False)
+            test_acc, correct, total, = calculate_acc(outputs, targets, config, correct, total, mask, is_train = False)
 
     logger.info("   == test loss: {:.3f} | test err: {:6.3f}%".format(test_loss, 100.0 * (1 - test_acc)))
 
@@ -184,7 +188,7 @@ def start_training(work_path, resume = False, config_dict = None):
 
     # 设置loss计算函数
     # define loss
-    criterion = SmoothL1Loss_mask(config.max_disparity)
+    criterion = nn.SmoothL1Loss()
 
     # 设置optimizer用于反向传播梯度
     # define optimizer

@@ -56,22 +56,28 @@ def get_data_loader(transform_train, transform_test, config):
     return train_loader, test_loader
 
 
-def compute_npx_error(prediction, gt, max_disparity, n):
+def compute_npx_error(prediction, gt, n, max_disparity = None):
     # computing n-px error
-    mask = gt < max_disparity
-    dif = (gt[mask] - prediction[mask]).abs()
+    if max_disparity:
+        mask = gt < max_disparity
+        prediction = prediction[mask]
+        gt = gt[mask]
+    dif = (gt - prediction).abs()
 
-    correct = (dif < n) | (dif < gt[mask] * 0.05)  # Tensor, size [N, H, W]
+    correct = (dif < n) | (dif < gt * 0.05)  # Tensor, size [N, H, W]
 
     correct = float(correct.sum())
-    total = float(gt[mask].size(0))
+    total = float(gt.size(0))
 
     return correct, total
 
 
-def calculate_acc(outputs, targets, config, correct = 0, total = 0, is_train = True, **kwargs):
+def calculate_acc(outputs, targets, config, correct = 0, total = 0, mask = None, is_train = True, **kwargs):
     if config.dataset in ['kitti2015', 'kitti2012', 'sceneflow']:
-        correct, total = compute_npx_error(outputs, targets, config.max_disparity, n = 3)
+        if mask:
+            correct, total = compute_npx_error(outputs[mask], targets[mask], n = 3)
+        else:
+            correct, total = compute_npx_error(outputs, targets, n = 3, max_disparity = config.max_disparity, )
         train_acc = correct / total
     return train_acc, correct, total
 

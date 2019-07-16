@@ -53,6 +53,7 @@ def train_step(train_loader, net, criterion, optimizer, epoch, device):
             loss = 0
             for output, w in zip(outputs, config.classifier_weight):
                 mask = targets > 0
+                mask.detach_()
                 loss += w * criterion(output[mask], targets[mask])
             outputs = outputs[0]
         else:
@@ -108,6 +109,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
             mask = targets > 0
+            mask.detach_()
             loss = criterion(outputs[mask], targets[mask])
 
             # calculate loss and acc

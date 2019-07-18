@@ -13,8 +13,9 @@ __date__ = '2019/7/12 18:26'
 
 import os
 import numbers
-import torchvision.transforms.functional as F
+import torch
 import numpy as np
+import torchvision.transforms.functional as F
 
 from os.path import join
 from torch.utils import data
@@ -121,12 +122,14 @@ class ToTensor():
 
     def __call__(self, sample):
         # PIL.Image.Image W x H x C ---> torch.Tensor C x H x W
-        sample['left'] = F.to_tensor(sample['left'])
-        sample['right'] = F.to_tensor(sample['right'])
+        sample['left'] = F.to_tensor(sample['left']).type(torch.FloatTensor)
+        sample['right'] = F.to_tensor(sample['right']).type(torch.FloatTensor)
 
         if 'disp' in sample:
             sample['disp'] = F.to_tensor(sample['disp'])
-            sample['disp'] = sample['disp'].float()
+            if sample['disp'].max() > 255:
+                sample['disp'] = sample['disp'] / 255
+            sample['disp'] = sample['disp'].type(torch.FloatTensor)
 
         return sample
 

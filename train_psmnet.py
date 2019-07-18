@@ -122,7 +122,7 @@ def test(test_loader, net, criterion, optimizer, epoch, device):
     writer.add_scalar('test_loss', test_loss, epoch)
     writer.add_scalar('test_err', 1 - test_acc, epoch)
     # Save checkpoint.
-    test_acc = 100. * test_loss
+    test_acc = 100. * test_acc
     state = {
         'state_dict': net.state_dict(),
         'best_prec': best_prec,

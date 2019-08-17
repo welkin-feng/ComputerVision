@@ -18,13 +18,13 @@ import numpy as np
 import torchvision.transforms.functional as F
 
 from os.path import join
-from torch.utils import data
+from torch.utils.data import Dataset
 from PIL import Image
 
 __all__ = ['KITTI2015', 'RandomCrop', 'ToTensor', 'Normalize']
 
 
-class KITTI2015(data.Dataset):
+class KITTI2015(Dataset):
 
     def __init__(self, root, mode = 'train', validate_size = 40, occ = True,
                  transform = None, target_transform = None, download = False):

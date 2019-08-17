@@ -11,11 +11,7 @@ File Name:  kitti_util.py
 __author__ = 'Welkin'
 __date__ = '2019/7/13 16:25'
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from torch.utils import data
+from torch.utils.data import DataLoader
 from dataloader.kitti_loader import *
 
 
@@ -48,11 +44,11 @@ def get_data_loader(transform_train, transform_test, config):
     elif config.dataset.lower() == "kitti2012":
         pass
 
-    train_loader = data.DataLoader(trainset, batch_size = config.batch_size,
-                                   shuffle = True, num_workers = config.workers)
+    train_loader = DataLoader(trainset, batch_size = config.batch_size,
+                              shuffle = True, num_workers = config.workers)
 
-    test_loader = data.DataLoader(testset, batch_size = config.test_batch,
-                                  shuffle = False, num_workers = config.workers)
+    test_loader = DataLoader(testset, batch_size = config.test_batch,
+                             shuffle = False, num_workers = config.workers)
     return train_loader, test_loader
 
 

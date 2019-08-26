@@ -238,7 +238,7 @@ def start_training(work_path, resume = False, config_dict = None):
             if config.lr_scheduler.type == 'ADAPTIVE':
                 if config.lr_scheduler.mode == 'max':
                     lr_scheduler.step(best_prec, epoch)
-                elif config.lr_scheduler.mode == 'min':
+                elif config.lr_scheduler.mode == 'min' and train_loss is not None:
                     lr_scheduler.step(train_loss, epoch)
             else:
                 lr_scheduler.step(epoch)

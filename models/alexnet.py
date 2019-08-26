@@ -64,15 +64,17 @@ class AlexNet(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.data.zero_()
+                    m.bias.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    m.bias.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                m.weight.fill_(1)
+                if m.bias is not None:
+                    m.bias.zero_()
 
     def forward(self, x):
         out = self.conv(x)

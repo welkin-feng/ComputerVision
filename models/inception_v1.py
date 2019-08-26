@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .util_modules import Flatten, conv_bn_relu
+from .util_modules import conv_bn_relu
 
 __all__ = ['inception_v1', 'inception_v1_bn']
 
@@ -82,7 +82,7 @@ class Inception_v1(nn.Module):
             self.avgpool_4a = nn.AvgPool2d(kernel_size = 3, stride = 1)
         self.auxiliary_classifier_1 = nn.Sequential(
             conv_bn_relu(512, 128, kernel_size = 1, use_batch_norm = use_bn),
-            Flatten(),
+            nn.Flatten(),
             nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),
             nn.Linear(1024, num_classes)
@@ -97,7 +97,7 @@ class Inception_v1(nn.Module):
             self.avgpool_4d = nn.AvgPool2d(kernel_size = 3, stride = 1)
         self.auxiliary_classifier_2 = nn.Sequential(
             conv_bn_relu(528, 128, kernel_size = 1, use_batch_norm = use_bn),
-            Flatten(),
+            nn.Flatten(),
             nn.Linear(128 * mid_size ** 2, 1024), nn.ReLU(inplace = True),
             nn.Dropout(0.7),
             nn.Linear(1024, num_classes)
@@ -109,7 +109,7 @@ class Inception_v1(nn.Module):
         # classifier
         self.classifier = nn.Sequential(
             nn.AvgPool2d(kernel_size = final_size, stride = 1),
-            Flatten(),
+            nn.Flatten(),
             nn.Dropout(0.4),
             nn.Linear(1024, num_classes)
         )
@@ -117,15 +117,17 @@ class Inception_v1(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.data.zero_()
+                    m.bias.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    m.bias.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                m.weight.fill_(1)
+                if m.bias is not None:
+                    m.bias.zero_()
 
     def forward(self, x):
         output = self.conv_1(x)

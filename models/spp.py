@@ -15,8 +15,6 @@ import math
 import torch
 import torch.nn as nn
 
-from .util_modules import Flatten
-
 __all__ = ['SPP', 'SPP_multi_level']
 
 
@@ -42,7 +40,7 @@ class SPP_multi_level(nn.Module):
         """ Constructor for SPP_multi_level """
         super().__init__()
         self.spp_list = [SPP(in_size, out_size) for out_size in out_size_list]
-        self.flatten = Flatten() if flatten else None
+        self.flatten = nn.Flatten() if flatten else None
 
     def forward(self, x):
         out = tuple(spp(x) for spp in self.spp_list)

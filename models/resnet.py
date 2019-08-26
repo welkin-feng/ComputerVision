@@ -13,7 +13,6 @@ __date__ = '2019/7/10 00:23'
 
 import torch.nn as nn
 
-from .util_modules import Flatten
 from .resnet_modules import *
 
 __all__ = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
@@ -44,21 +43,23 @@ class ResNet(nn.Module):
         self.conv4 = self._make_layer(block, 256, layers[2], stride = 2)
         self.conv5 = self._make_layer(block, 512, layers[3], stride = 2)
         self.avgpool = nn.AvgPool2d(kernel_size = out_size)
-        self.flatten = Flatten()
+        self.flatten = nn.Flatten()
         self.fc = nn.Linear(self.in_channels, num_classes)
 
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.data.zero_()
+                    m.bias.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    m.bias.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                m.weight.fill_(1)
+                if m.bias is not None:
+                    m.bias.zero_()
 
     def _make_layer(self, block, out_channels_reduced, block_num, stride = 1):
         layer = []
@@ -99,11 +100,11 @@ class ResNet_Cifar(ResNet):
         self.conv3 = self._make_layer(block, 32, layers[1], stride = 2)
         self.conv4 = self._make_layer(block, 64, layers[2], stride = 2)
         self.avgpool = nn.AvgPool2d(kernel_size = out_size)
-        self.flatten = Flatten()
+        self.flatten = nn.Flatten()
         self.fc = nn.Linear(self.in_channels, num_classes)
 
-    def forward(self, input):
-        out = self.conv1(input)
+    def forward(self, x):
+        out = self.conv1(x)
         out = self.conv2(out)
         out = self.conv3(out)
         out = self.conv4(out)

@@ -13,8 +13,6 @@ __date__ = '2019/7/4 00:22'
 
 import torch.nn as nn
 
-from .util_modules import Flatten
-
 __all__ = ['mobilenet_v1']
 
 
@@ -67,21 +65,23 @@ class MobileNet(nn.Module):
             DepthwiseSeparableConv(1024, 1024, 3),
         )
         self.avgpool = nn.AvgPool2d(kernel_size = final_size)
-        self.flatten = Flatten()
+        self.flatten = nn.Flatten()
         self.fc = nn.Linear(1024, num_classes)
 
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                    m.bias.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    m.bias.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.fill_(1)
+                if m.bias is not None:
+                    m.bias.zero_()
 
     def forward(self, x):
         output = self.conv(x)

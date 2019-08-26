@@ -13,7 +13,7 @@ __date__ = '2019/6/24 12:11'
 
 import torch.nn as nn
 
-from .util_modules import Flatten, conv_bn_relu
+from .util_modules import conv_bn_relu
 
 __all__ = ['vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']
 
@@ -49,7 +49,7 @@ class VGG(nn.Module):
                     conv3x3_block(256, 512, 4, use_bn),
                     conv3x3_block(512, 512, 4, use_bn)]
         self.conv = nn.Sequential(*net)
-        self.flatten = Flatten()
+        self.flatten = nn.Flatten()
         self.fc = nn.Sequential(nn.Linear(512 * final_size ** 2, 4096),
                                 nn.ReLU(inplace = True),
                                 nn.Dropout(),
@@ -61,15 +61,17 @@ class VGG(nn.Module):
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight.data)
+                nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.data.zero_()
+                    m.bias.zero_()
             elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight.data)
-                m.bias.data.zero_()
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    m.bias.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                m.weight.fill_(1)
+                if m.bias is not None:
+                    m.bias.zero_()
 
     def forward(self, x):
         output = self.conv(x)

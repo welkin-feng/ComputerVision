@@ -26,10 +26,10 @@ class BasicBlock(nn.Module):
         super().__init__()
         out_channels = out_channels_reduced * self.expansion
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels_reduced, 3, stride, 1, dilation),
+            nn.Conv2d(in_channels, out_channels_reduced, 3, stride, dilation, dilation),
             nn.BatchNorm2d(out_channels_reduced),
             nn.ReLU(inplace = True),
-            nn.Conv2d(out_channels_reduced, out_channels, 3, 1, 1, dilation),
+            nn.Conv2d(out_channels_reduced, out_channels, 3, 1, dilation, dilation),
             nn.BatchNorm2d(out_channels),
         )
         self.downsample = nn.Sequential(
@@ -57,7 +57,7 @@ class Bottleneck(nn.Module):
             nn.Conv2d(in_channels, out_channels_reduced, 1, stride),
             nn.BatchNorm2d(out_channels_reduced),
             nn.ReLU(inplace = True),
-            nn.Conv2d(out_channels_reduced, out_channels_reduced, 3, 1, 1, dilation),
+            nn.Conv2d(out_channels_reduced, out_channels_reduced, 3, 1, dilation, dilation),
             nn.BatchNorm2d(out_channels_reduced),
             nn.ReLU(inplace = True),
             nn.Conv2d(out_channels_reduced, out_channels, 1),

@@ -51,15 +51,15 @@ class ResNet(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.zero_()
+                    nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 if m.bias is not None:
-                    m.bias.zero_()
+                    nn.init.zeros_(m.bias)
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.fill_(1)
+                nn.init.ones_(m.weight)
                 if m.bias is not None:
-                    m.bias.zero_()
+                    nn.init.zeros_(m.bias)
 
     def _make_layer(self, block, out_channels_reduced, block_num, stride = 1):
         layer = []

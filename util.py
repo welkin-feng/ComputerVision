@@ -21,8 +21,7 @@ import torch.optim as optim
 
 __all__ = ['Logger', 'count_parameters',
            'save_checkpoint', 'load_checkpoint',
-           'get_current_lr', 'adjust_learning_rate',
-           'get_learning_rate_scheduler']
+           'adjust_learning_rate', 'get_learning_rate_scheduler']
 
 
 class Logger(object):
@@ -68,13 +67,9 @@ def load_checkpoint(path, model, optimizer = None):
             return best_prec, last_epoch
 
 
-def get_current_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
-
-
+# todo create class `HTD`, and remove this function
 def adjust_learning_rate(optimizer, epoch, config):
-    lr = get_current_lr(optimizer)
+    lr = optimizer.param_groups[0]['lr']
     if config.lr_scheduler.type == 'STEP':
         if epoch in config.lr_scheduler.lr_epochs:
             lr *= config.lr_scheduler.lr_mults

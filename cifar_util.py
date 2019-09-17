@@ -52,9 +52,9 @@ class Cutout(object):
         return img
 
 
-def data_augmentation(config, is_train = True):
+def data_augmentation(config, train_mode = True):
     aug = []
-    if is_train:
+    if train_mode:
         # random crop
         if config.augmentation.random_crop:
             aug.append(transforms.RandomCrop(config.input_size, padding = 4))
@@ -72,7 +72,7 @@ def data_augmentation(config, is_train = True):
             aug.append(transforms.Normalize(
                 (0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)))
 
-    if is_train and config.augmentation.cutout:
+    if train_mode and config.augmentation.cutout:
         # cutout
         aug.append(Cutout(n_holes = config.augmentation.holes,
                           length = config.augmentation.length))
@@ -121,15 +121,16 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 
-def calculate_acc(outputs, targets, config, correct = 0, total = 0, is_train = True, **kwargs):
-    if config.dataset in ['cifar10', 'cifar100']:
-        _, predicted = outputs.max(1)
-        total += targets.size(0)
-        if is_train and config.mixup:
-            lam, targets_a, targets_b = kwargs['lam'], kwargs['targets_a'], kwargs['targets_b']
-            correct += (lam * predicted.eq(targets_a).sum().item()
-                        + (1 - lam) * predicted.eq(targets_b).sum().item())
-        else:
-            correct += predicted.eq(targets).sum().item()
-        train_acc = correct / total
-    return train_acc, correct, total
+def calculate_acc(outputs, targets, config, correct = 0, total = 0, train_mode = True, **kwargs):
+    if not config.dataset in ['cifar10', 'cifar100']:
+        raise ValueError("`dataset` in `config` should be 'cifar10' or 'cifar100'")
+    _, predicted = outputs.max(1)
+    total += targets.size(0)
+    if train_mode and config.mixup:
+        lam, targets_a, targets_b = kwargs['lam'], kwargs['targets_a'], kwargs['targets_b']
+        correct += (lam * predicted.eq(targets_a).sum().item()
+                    + (1 - lam) * predicted.eq(targets_b).sum().item())
+    else:
+        correct += predicted.eq(targets).sum().item()
+    acc = correct / total
+    return acc, correct, total

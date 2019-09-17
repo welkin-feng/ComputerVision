@@ -132,19 +132,20 @@ class Trainer(object):
                         self.lr_scheduler.step(train_loss, epoch)
                 else:
                     self.lr_scheduler.step(epoch)
-            self.writer.add_scalar('learning_rate', self.current_lr, epoch)
+
             # train one epoch
             train_loss, _ = self.train_step(train_loader, epoch)
             # validate network
             if epoch == 0 or (epoch + 1) % self.config.eval_freq == 0 or epoch == self.config.epochs - 1:
                 self.test(test_loader, epoch)
+
         self.logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(self.best_prec))
 
     def train_step(self, train_loader, epoch):
         start = time.time()
         self.net.train()
 
-        _train_loss, train_loss = 0, 0
+        _train_loss, train_loss, train_acc = 0, 0, 0
 
         self.logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, self.config.epochs))
 
@@ -169,14 +170,13 @@ class Trainer(object):
             train_acc = self._calculate_acc(outputs, targets, train_mode = True)
 
             # log
-            if (batch_index + 1) % self.config.print_interval == 0:
+            if (batch_index + 1) % self.config.print_interval == 0 or (batch_index + 1) == len(train_loader):
                 self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
                     batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
 
         end = time.time()
-        self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
-            batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
         self.logger.info("   == cost time: {:.4f}s".format(end - start))
+        self.writer.add_scalar('learning_rate', self.current_lr, epoch)
         self.writer.add_scalar('train_loss', train_loss, epoch)
         self.writer.add_scalar('train_acc', train_acc, epoch)
 
@@ -285,12 +285,12 @@ class ClassificationTrainer(Trainer):
     def train_step(self, train_loader, epoch):
         self.correct = 0
         self.total = 0
-        super().train_step(train_loader, epoch)
+        return super().train_step(train_loader, epoch)
 
     def test(self, test_loader, epoch):
         self.correct = 0
         self.total = 0
-        super().test(test_loader, epoch)
+        return super().test(test_loader, epoch)
 
     def _get_transforms(self, train_mode):
         return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))

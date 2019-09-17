@@ -17,8 +17,8 @@ import torch.nn.functional as F
 
 from . import detection_utils
 from .util_modules import conv_bn_activation, conv_bn_relu
-from .generalized_yolo import GeneralizedYOLO
-from .detection_utils import GeneralizedYOLOTransform
+from .yolo_modules import GeneralizedYOLO
+from .yolo_modules import GeneralizedYOLOTransform
 
 __all__ = ['Darknet19', 'YOLOv2', 'yolo_v2_darknet19', 'yolo_v2_resnet50']
 
@@ -183,7 +183,6 @@ class YOLOv2Postprocess(nn.Module):
             anchor_boxes (List[Tuple[float, float]]): the (width, height) size of each anchor box
             box_iou_thresh
             nms_thresh
-
         """
         super().__init__()
         if not isinstance(anchor_boxes, (list, tuple)):
@@ -196,7 +195,7 @@ class YOLOv2Postprocess(nn.Module):
         self.box_iou_thresh = box_iou_thresh
         self.nms_thresh = nms_thresh
 
-    def get_proposed_boxes(self, boxes_offset):
+    def get_proposed_boxes(self, boxes_offset, get_prior_anchor_loss):
         N, C, H, W = boxes_offset.shape
         num_anchors = len(self.anchors)
         stride = self.num_classes + 5
@@ -210,11 +209,17 @@ class YOLOv2Postprocess(nn.Module):
         # [N, H, W, 5, 20]
         proposed_boxes_classes = boxes_offset[..., :self.num_classes]
         # [N, H, W, 5, 1]
-        proposed_boxes_score = boxes_offset[..., -1:]
+        proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])
         # [N, H, W, 5, 2]
-        boxes_offset_xy = boxes_offset[..., self.num_classes:self.num_classes + 2]
+        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])
         # [N, H, W, 5, 2]
         boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]
+
+        prior_anchor_losses = 0
+        if get_prior_anchor_loss:
+            prior_anchor_losses = F.mse_loss(boxes_offset_xy,
+                                             torch.zeros_like(boxes_offset_xy).to(boxes_offset_xy) + 0.5) + \
+                                  F.mse_loss(boxes_offset_wh, torch.zeros_like(boxes_offset_wh).to(boxes_offset_wh))
 
         x_grid = torch.arange(W).repeat(H, 1)
         y_grid = torch.arange(H).unsqueeze(1).repeat(1, W)
@@ -223,22 +228,21 @@ class YOLOv2Postprocess(nn.Module):
 
         # 从特征图中的坐标转换成原图中的坐标
         # convert coordinates from feature map to coordinates in the original image
-        proposed_boxes_xy = (anchors_xy + torch.sigmoid(boxes_offset_xy)) * self.size_divisible
+        proposed_boxes_xy = (anchors_xy + boxes_offset_xy) * self.size_divisible
         proposed_boxes_wh = anchors_wh * boxes_offset_wh.exp()
         proposed_boxes_xywh = torch.cat((proposed_boxes_xy, proposed_boxes_wh), dim = -1)
 
-        return proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score
+        return proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, prior_anchor_losses
 
     @staticmethod
     def bboxes_transform(boxes_xywh, image_sizes):
         """
         Args:
             boxes_xywh (Tensor): shape of [N, H, W, 5, 4]
-            image_sizes (List[Tuple[width, height]])
+            image_sizes (List[Tuple[height, width]])
 
         Returns:
             boxes_xyxy (Tensor): shape of [N, H, W, 5, 4]
-
         """
         boxes_xyxy = boxes_xywh.new(boxes_xywh.shape).zero_()
         boxes_xyxy[..., 0] = boxes_xywh[..., 0] - boxes_xywh[..., 2] * 0.5
@@ -254,13 +258,11 @@ class YOLOv2Postprocess(nn.Module):
     @staticmethod
     def bboxes_transform_to_xywh(boxes_xyxy):
         """
-
         Args:
             boxes_xyxy (Tensor): shape of [M, 4]
 
         Returns:
             boxes_xywh (Tensor): shape of [M, 4]
-
         """
         boxes_xywh = boxes_xyxy.new(boxes_xyxy.shape).zero_()
         boxes_xywh[..., 0] = (boxes_xyxy[..., 2] + boxes_xyxy[..., 0]) * 0.5
@@ -315,25 +317,45 @@ class YOLOv2Postprocess(nn.Module):
             assert len(t["boxes"]) == len(t["labels"]), "the length of boxes do not match the length of labels"
 
     def comupute_loss(self, proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score,
-                      targets, image_sizes, get_prior_anchor_loss = False):
+                      targets, image_sizes):
         """
-        loss = sum^W sum^H sum^A {}
+        for pred_box in all prediction box:
+            if (max iou pred_box has with all truth box < threshold):
+                costs[pred_box][obj] = (sigmoid(obj)-0)^2 * 1
+            else:
+                costs[pred_box][obj] = 0
+            costs[pred_box][x, y] = (sigmoid(x, y)-0.5)^2 * 0.01
+            costs[pred_box][w, h] = ((w-0)^2 + (h-0)^2) * 0.01
+        for truth_box all ground truth box:
+            pred_box = the one prediction box that is supposed to predict for truth_box
+            costs[pred_box][obj] = (1-sigmoid(obj))^2 * 5
+            costs[pred_box][x, y] = (sigmoid(x, y)-true(x, y))^2 * (2- truew*trueh/imagew*imageh)
+            costs[pred_box][w, h] = ((w-log(truew))^2 + (h-log(trueh))^2) * (2- truew*trueh/imagew*imageh)
+            costs[pred_box][classes] = softmax_euclidean
+        total_loss = sum(costs)
+
+        Args:
+            proposed_boxes_classes
+            proposed_boxes_loc
+            proposed_boxes_score
+            targets
+            image_sizes
 
         Returns:
-
+            losses (Dict[Tensor]): include `class_losses`, `coord_losses`, `obj_score_losses`,
+                `noobj_score_losses` and `prior_anchor_loss`.
         """
+        noobject_scale = 1
         class_scale = 1
         object_scale = 5
-        noobject_scale = 1
+        coord_scale = None
 
-        class_losses, coord_losses, obj_score_losses, noobj_score_losses, prior_anchor_loss = 0, 0, 0, 0, 0
+        class_losses, coord_losses, obj_score_losses, noobj_score_losses = 0, 0, 0, 0
 
         # transform xywh to xyxy
         proposed_boxes_xyxy = self.bboxes_transform(proposed_boxes_loc, image_sizes)
 
-        # todo 在前几轮训练中，计算每个 预测框 与原始anchor之间的loss (让xywh趋近于0)
-        if get_prior_anchor_loss:
-            pass
+        proposed_boxes_loc = proposed_boxes_loc / self.size_divisible
 
         for i in range(len(targets)):
             target = targets[i]
@@ -366,24 +388,22 @@ class YOLOv2Postprocess(nn.Module):
 
             t_boxes = self.bboxes_transform_to_xywh(target['boxes'])
             coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1) / (image_size[0] * image_size[1])  # [t_boxes.shape[0],]
-
             t_boxes = t_boxes / self.size_divisible
-            t_box_cell_idx = t_boxes[:, :2].long()  # [t_boxes.shape[0], 2]
 
-            # 得到每个gt落在哪个cell后，计算这个gt与哪个原始(先验)anchor的iou最大
+            # 得到每个gt落在哪个cell
+            t_box_cell_idx = t_boxes[:, :2].long()  # [t_boxes.shape[0], 2]
+            # 计算这个gt与哪个原始(先验)anchor的iou最大
             prior_anchor_iou = torch.zeros((t_boxes.shape[0], len(self.anchors))).to(t_boxes)
             for a in range(len(self.anchors)):
                 anchor = t_boxes.new(self.anchors[a]) / self.size_divisible  # shape of (2,)
                 overlap = torch.min(t_boxes[:, 2], anchor[0]) * torch.min(t_boxes[:, 3], anchor[1])
                 prior_anchor_iou[:, a] = overlap / (t_boxes[:, 2:].prod(dim = -1) + anchor.prod(dim = -1) - overlap)
-
-            # 得到每个gt对应anchor的idx
+            # 得到与每个gt匹配的anchor的idx
             t_box_correspond_anchor_idx = prior_anchor_iou.argmax(dim = -1).reshape(-1, 1).long()  # [t_boxes.shape[0],]
-
             # 取与gt匹配的原始anchor对应的预测框
             correspond_box_idx = torch.cat((t_box_cell_idx, t_box_correspond_anchor_idx), dim = -1).t().tolist()
             cor_box_cls = p_boxes_cls[correspond_box_idx]  # [t_boxes.shape[0], 20]
-            cor_box_loc = p_boxes_loc[correspond_box_idx] / self.size_divisible  # [t_boxes.shape[0],4]
+            cor_box_loc = p_boxes_loc[correspond_box_idx]  # [t_boxes.shape[0],4]
             cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
 
             # 计算其coord loss, class loss 和 iou_score loss
@@ -395,20 +415,20 @@ class YOLOv2Postprocess(nn.Module):
         losses = dict(class_losses = class_losses,
                       coord_losses = coord_losses,
                       obj_score_losses = obj_score_losses,
-                      noobj_score_losses = noobj_score_losses,
-                      prior_anchor_loss = prior_anchor_loss)
+                      noobj_score_losses = noobj_score_losses)
         return losses
 
-    def forward(self, boxes_offset, image_sizes, targets = None):
+    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False):
         """
 
         Args:
             boxes_offset (Tensor): shape [N, 7*7*30] in YOLOv1, [N, 13, 13, 125] in YOLOv2
-            image_sizes (List[Tuple[width, height]]):
+            image_sizes (List[Tuple[height, width]]):
             targets (List[Dict[Tensor]): ground-truth boxes present in the image (optional).
                 If provided, each element in the dict should contain a field `boxes`,
                 with the locations of the ground-truth boxes, and a field `labels`
                 with the classifications of the ground-truth boxes.
+            get_prior_anchor_loss
 
         Returns:
             result (List[Dict[Tensor]]): the predicted boxes from the RPN, one Tensor per image.
@@ -416,7 +436,8 @@ class YOLOv2Postprocess(nn.Module):
                 testing, it is an empty dict.
 
         """
-        proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score = self.get_proposed_boxes(boxes_offset)
+        proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
+            boxes_offset, get_prior_anchor_loss)
 
         result, losses = [], {}
         if self.training:
@@ -424,8 +445,9 @@ class YOLOv2Postprocess(nn.Module):
             assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
             losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
                                         image_sizes)
+            prior_scale = 0.01
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
-                     losses['noobj_score_losses'] + losses['prior_anchor_loss']
+                     losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
         else:
             # transform xywh to xyxy

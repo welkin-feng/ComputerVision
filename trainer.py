@@ -19,18 +19,16 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-
 import torchvision.transforms as transforms
+import cifar_util
 
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
 from models import *
 from util import *
-from cifar_util import *
 
 
-class Trainer():
-    """  """
+class Trainer(object):
 
     def __init__(self, work_path, resume = False, config_dict = None):
         """
@@ -61,6 +59,9 @@ class Trainer():
         # convert config dict to EasyDict
         self.config = EasyDict(config_dict)
 
+        self._init_model()
+
+    def _init_model(self):
         # 创建网络模型
         # define netowrk
         self.net = get_model(self.config)
@@ -72,10 +73,6 @@ class Trainer():
             self.net = nn.DataParallel(self.net)
             cudnn.benchmark = True
         self.net.to(self.device)
-
-        # 设置loss计算函数
-        # define loss
-        self.criterion = nn.CrossEntropyLoss()
 
         # 设置optimizer用于反向传播梯度
         # define optimizer
@@ -107,15 +104,17 @@ class Trainer():
         self.logger.info(" == total parameters: " + str(count_parameters(self.net)))
 
     def start_training(self):
-
+        """
+        Need to implement function `_get_transforms` and `_get_dataloader`
+        """
         # 加载训练数据 并进行数据扩增
         # load training data & do data augmentation
-        transform_train = transforms.Compose(data_augmentation(self.config))
-        transform_test = transforms.Compose(data_augmentation(self.config, is_train = False))
+        transform_train = self._get_transforms(train_mode = True)
+        transform_test = self._get_transforms(train_mode = False)
 
         # 得到可用于torch的DataLoader
         # get data loader
-        train_loader, test_loader = get_data_loader(transform_train, transform_test, self.config)
+        train_loader, test_loader = self._get_dataloader(transform_train, transform_test)
 
         # 开始训练
         # start training network
@@ -133,44 +132,27 @@ class Trainer():
                         self.lr_scheduler.step(train_loss, epoch)
                 else:
                     self.lr_scheduler.step(epoch)
-            lr = get_current_lr(self.optimizer)
-            self.writer.add_scalar('learning_rate', lr, epoch)
+            self.writer.add_scalar('learning_rate', self.current_lr, epoch)
             # train one epoch
             train_loss, _ = self.train_step(train_loader, epoch)
             # validate network
             if epoch == 0 or (epoch + 1) % self.config.eval_freq == 0 or epoch == self.config.epochs - 1:
                 self.test(test_loader, epoch)
-
         self.logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(self.best_prec))
 
     def train_step(self, train_loader, epoch):
-
         start = time.time()
         self.net.train()
 
         _train_loss, train_loss = 0, 0
-        correct, total, train_acc = 0, 0, 0
 
         self.logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, self.config.epochs))
 
         for batch_index, (inputs, targets) in enumerate(train_loader):
             # move tensor to GPU
             inputs, targets = inputs.to(self.device), targets.to(self.device)
-            if self.config.mixup:
-                inputs, targets_a, targets_b, lam = mixup_data(inputs, targets,
-                                                               self.config.mixup_alpha, self.device)
-                outputs = self.net(inputs)
-                loss = mixup_criterion(self.criterion, outputs, targets_a, targets_b, lam)
-            else:
-                outputs = self.net(inputs)
-                if isinstance(outputs, tuple):
-                    # losses for multi classifier
-                    losses = list(map(self.criterion, outputs, [targets] * len(outputs)))
-                    losses = list(map(lambda x, y: x * y, self.config.classifier_weight, losses))
-                    loss = sum(losses[:self.config.num_classifier])
-                    outputs = outputs[0]
-                else:
-                    loss = self.criterion(outputs, targets)
+
+            outputs, loss = self._get_model_outputs(inputs, targets, train_mode = True)
 
             # zero the gradient buffers
             self.optimizer.zero_grad()
@@ -184,21 +166,16 @@ class Trainer():
             train_loss = _train_loss / (batch_index + 1)
 
             # calculate acc
-            if self.config.mixup:
-                train_acc, correct, total, = calculate_acc(outputs, targets, self.config, correct, total,
-                                                           is_train = True, lam = lam,
-                                                           targets_a = targets_a, targets_b = targets_b)
-            else:
-                train_acc, correct, total, = calculate_acc(outputs, targets, self.config, correct, total,
-                                                           is_train = True)
+            train_acc = self._calculate_acc(outputs, targets, train_mode = True)
+
             # log
             if (batch_index + 1) % self.config.print_interval == 0:
                 self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
-                    batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(self.optimizer)))
+                    batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
 
         end = time.time()
         self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
-            batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, get_current_lr(self.optimizer)))
+            batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
         self.logger.info("   == cost time: {:.4f}s".format(end - start))
         self.writer.add_scalar('train_loss', train_loss, epoch)
         self.writer.add_scalar('train_acc', train_acc, epoch)
@@ -206,27 +183,21 @@ class Trainer():
         return train_loss, train_acc
 
     def test(self, test_loader, epoch):
-
         self.net.eval()
-
-        _test_loss, test_loss = 0, 0
-        correct, total, test_acc = 0, 0, 0
+        _test_loss, test_loss, test_acc = 0, 0, 0
 
         self.logger.info(" === Validate ===".format(epoch + 1, self.config.epochs))
 
         with torch.no_grad():
             for batch_index, (inputs, targets) in enumerate(test_loader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
-                outputs = self.net(inputs)
-                if isinstance(outputs, tuple):
-                    outputs = outputs[0]
-                loss = self.criterion(outputs, targets)
+
+                outputs, loss = self._get_model_outputs(inputs, targets, train_mode = False)
 
                 # calculate loss and acc
                 _test_loss += loss.item()
                 test_loss = _test_loss / (batch_index + 1)
-                test_acc, correct, total, = calculate_acc(outputs, targets, self.config, correct, total,
-                                                          is_train = False)
+                test_acc = self._calculate_acc(outputs, targets, train_mode = False)
 
         self.logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
         self.writer.add_scalar('test_loss', test_loss, epoch)
@@ -245,6 +216,143 @@ class Trainer():
         }
         save_checkpoint(state, is_best, self.args.work_path + '/' + self.config.ckpt_name)
 
+    @property
+    def current_lr(self):
+        for param_group in self.optimizer.param_groups:
+            return param_group['lr']
+
+    def _get_transforms(self, train_mode):
+        """
+        Args:
+            train_mode
+
+        Returns:
+            transform
+        """
+        transform = None
+        raise NotImplementedError()
+        return transform
+
+    def _get_dataloader(self, transform_train, transform_test):
+        """
+        Args:
+            transform_train:
+            transform_test:
+
+        Returns:
+            train_loader
+            test_loader
+        """
+        raise NotImplementedError()
+
+    def _get_model_outputs(self, inputs, targets, train_mode):
+        """
+        Args:
+            inputs:
+            targets:
+            train_mode
+
+        Returns:
+            outputs (None or Tensor): if training, None if not used later else Tensor, else Tensor.
+            loss (Tensor): if training, Tensor with grad, else Tensor with/without grad.
+        """
+        outputs, loss = None, None
+        raise NotImplementedError()
+
+    def _calculate_acc(self, outputs, targets, train_mode):
+        """
+        Args:
+            outputs:
+            targets:
+            train_mode:
+
+        Returns:
+            acc
+        """
+        raise NotImplementedError()
+
+
+class ClassificationTrainer(Trainer):
+    """  """
+
+    def __init__(self, work_path, resume = False, config_dict = None):
+        super().__init__(work_path, resume, config_dict)
+
+        # 设置loss计算函数
+        # define loss
+        self.criterion = nn.CrossEntropyLoss()
+
+    def train_step(self, train_loader, epoch):
+        self.correct = 0
+        self.total = 0
+        super().train_step(train_loader, epoch)
+
+    def test(self, test_loader, epoch):
+        self.correct = 0
+        self.total = 0
+        super().test(test_loader, epoch)
+
+    def _get_transforms(self, train_mode):
+        return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
+
+    def _get_dataloader(self, transform_train, transform_test):
+        return cifar_util.get_data_loader(transform_train, transform_test, self.config)
+
+    def _get_model_outputs(self, inputs, targets, train_mode):
+        if train_mode:
+            if self.config.mixup:
+                inputs, self.targets_a, self.targets_b, self.lam = cifar_util.mixup_data(inputs, targets,
+                                                                                         self.config.mixup_alpha,
+                                                                                         self.device)
+                outputs = self.net(inputs)
+                loss = cifar_util.mixup_criterion(self.criterion, outputs, self.targets_a, self.targets_b, self.lam)
+            else:
+                outputs = self.net(inputs)
+                if isinstance(outputs, tuple):
+                    # losses for multi classifier
+                    losses = list(map(self.criterion, outputs, [targets] * len(outputs)))
+                    losses = list(map(lambda x, y: x * y, self.config.classifier_weight, losses))
+                    loss = sum(losses[:self.config.num_classifier])
+                    outputs = outputs[0]
+                else:
+                    loss = self.criterion(outputs, targets)
+        else:
+            outputs = self.net(inputs)
+            if isinstance(outputs, tuple):
+                outputs = outputs[0]
+            loss = self.criterion(outputs, targets)
+
+        return outputs, loss
+
+    def _calculate_acc(self, outputs, targets, train_mode):
+        if self.config.mixup:
+            acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
+                                                                      self.total, train_mode = train_mode,
+                                                                      lam = self.lam, targets_a = self.targets_a,
+                                                                      targets_b = self.targets_b)
+        else:
+            acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
+                                                                      self.total, train_mode = train_mode)
+        return acc
+
+
+class DetectionTrainer(Trainer):
+
+    def __init__(self, work_path, resume = False, config_dict = None):
+        super().__init__(work_path, resume, config_dict)
+
+    def _get_transforms(self, train_mode):
+        pass
+
+    def _get_dataloader(self, transform_train, transform_test):
+        pass
+
+    def _get_model_outputs(self, inputs, targets, train_mode):
+        pass
+
+    def _calculate_acc(self, outputs, targets, train_mode):
+        pass
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
@@ -255,7 +363,7 @@ def parse_args():
 
 
 def main(args):
-    trainer = Trainer(args.work_path, args.resume)
+    trainer = ClassificationTrainer(args.work_path, args.resume)
     trainer.start_training()
 
 

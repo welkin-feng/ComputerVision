@@ -237,8 +237,8 @@ class YOLOv1Postprocess(nn.Module):
         return class_logits, yolo_bboxes, pred_boxes, pred_masks
 
 
-def yolo_v1(num_classes, in_size = 448):
-    return YOLOv1(num_classes, 7, 2, in_size)
+def yolo_v1(num_classes, input_size = 448, **kwargs):
+    return YOLOv1(num_classes, 7, 2, input_size)
 
 
 if __name__ == '__main__':

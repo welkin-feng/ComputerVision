@@ -161,12 +161,12 @@ class Inception_v1(nn.Module):
         return output
 
 
-def inception_v1(num_classes, in_size = 224):
-    return Inception_v1(num_classes, in_size)
+def inception_v1(num_classes, input_size = 224, **kwargs):
+    return Inception_v1(num_classes, input_size)
 
 
-def inception_v1_bn(num_classes, in_size = 224):
-    return Inception_v1(num_classes, in_size, use_batch_norm = True)
+def inception_v1_bn(num_classes, input_size = 224, **kwargs):
+    return Inception_v1(num_classes, input_size, use_batch_norm = True)
 
 
 if __name__ == '__main__':

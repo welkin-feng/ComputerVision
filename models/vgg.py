@@ -80,20 +80,20 @@ class VGG(nn.Module):
         return output
 
 
-def vgg16(num_classes, in_size = 224):
-    return VGG(num_classes, 16, in_size)
+def vgg16(num_classes, input_size = 224, **kwargs):
+    return VGG(num_classes, 16, input_size)
 
 
-def vgg16_bn(num_classes, in_size = 224):
-    return VGG(num_classes, 16, in_size, use_batch_norm = True)
+def vgg16_bn(num_classes, input_size = 224, **kwargs):
+    return VGG(num_classes, 16, input_size, use_batch_norm = True)
 
 
-def vgg19(num_classes, in_size = 224):
-    return VGG(num_classes, 19, in_size)
+def vgg19(num_classes, input_size = 224, **kwargs):
+    return VGG(num_classes, 19, input_size)
 
 
-def vgg19_bn(num_classes, in_size = 224):
-    return VGG(num_classes, 19, in_size, use_batch_norm = True)
+def vgg19_bn(num_classes, input_size = 224, **kwargs):
+    return VGG(num_classes, 19, input_size, use_batch_norm = True)
 
 
 if __name__ == '__main__':

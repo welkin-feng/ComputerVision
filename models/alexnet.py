@@ -122,12 +122,12 @@ class AlexNet_cifar10(AlexNet):
         )
 
 
-def alexnet(num_classes, in_size = 227):
-    return AlexNet(num_classes, in_size)
+def alexnet(num_classes, input_size = 227, **kwargs):
+    return AlexNet(num_classes, input_size)
 
 
-def alexnet_cifar10(num_classes, in_size = 32):
-    return AlexNet_cifar10(num_classes, in_size)
+def alexnet_cifar10(num_classes, input_size = 32, **kwargs):
+    return AlexNet_cifar10(num_classes, input_size)
 
 
 if __name__ == '__main__':

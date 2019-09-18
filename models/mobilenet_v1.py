@@ -91,8 +91,8 @@ class MobileNet(nn.Module):
         return output
 
 
-def mobilenet_v1(num_classes, in_size = 224):
-    return MobileNet(num_classes, in_size)
+def mobilenet_v1(num_classes, input_size = 224, **kwargs):
+    return MobileNet(num_classes, input_size)
 
 
 if __name__ == '__main__':

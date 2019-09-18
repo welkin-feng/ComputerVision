@@ -114,41 +114,41 @@ class ResNet_Cifar(ResNet):
         return out
 
 
-def resnet18(num_class, in_size):
-    return ResNet(BasicBlock, [2, 2, 2, 2], num_class, in_size)
+def resnet18(num_class, input_size):
+    return ResNet(BasicBlock, [2, 2, 2, 2], num_class, input_size)
 
 
-def resnet34(num_class, in_size):
-    return ResNet(BasicBlock, [3, 4, 6, 3], num_class, in_size)
+def resnet34(num_class, input_size, **kwargs):
+    return ResNet(BasicBlock, [3, 4, 6, 3], num_class, input_size)
 
 
-def resnet50(num_class, in_size):
-    return ResNet(Bottleneck, [3, 4, 6, 3], num_class, in_size)
+def resnet50(num_class, input_size, **kwargs):
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_class, input_size)
 
 
-def resnet101(num_class, in_size):
-    return ResNet(Bottleneck, [3, 4, 23, 3], num_class, in_size)
+def resnet101(num_class, input_size, **kwargs):
+    return ResNet(Bottleneck, [3, 4, 23, 3], num_class, input_size)
 
 
-def resnet152(num_class, in_size):
-    return ResNet(Bottleneck, [3, 8, 36, 3], num_class, in_size)
+def resnet152(num_class, input_size, **kwargs):
+    return ResNet(Bottleneck, [3, 8, 36, 3], num_class, input_size)
 
 
-def resnet20_cifar(num_class, in_size):
-    return ResNet_Cifar(BasicBlock, [3, 3, 3], num_class, in_size)
+def resnet20_cifar(num_class, input_size, **kwargs):
+    return ResNet_Cifar(BasicBlock, [3, 3, 3], num_class, input_size)
 
 
-def resnet32_cifar(num_class, in_size):
-    return ResNet_Cifar(BasicBlock, [5, 5, 5], num_class, in_size)
+def resnet32_cifar(num_class, input_size, **kwargs):
+    return ResNet_Cifar(BasicBlock, [5, 5, 5], num_class, input_size)
 
 
-def resnet44_cifar(num_class, in_size):
-    return ResNet_Cifar(BasicBlock, [7, 7, 7], num_class, in_size)
+def resnet44_cifar(num_class, input_size, **kwargs):
+    return ResNet_Cifar(BasicBlock, [7, 7, 7], num_class, input_size)
 
 
-def resnet56_cifar(num_class, in_size):
-    return ResNet_Cifar(BasicBlock, [9, 9, 9], num_class, in_size)
+def resnet56_cifar(num_class, input_size, **kwargs):
+    return ResNet_Cifar(BasicBlock, [9, 9, 9], num_class, input_size)
 
 
-def resnet110_cifar(num_class, in_size):
-    return ResNet_Cifar(BasicBlock, [18, 18, 18], num_class, in_size)
+def resnet110_cifar(num_class, input_size, **kwargs):
+    return ResNet_Cifar(BasicBlock, [18, 18, 18], num_class, input_size)

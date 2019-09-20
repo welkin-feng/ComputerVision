@@ -20,6 +20,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
+import torchvision.datasets.vision as vision
 import cifar_util
 import voc_util
 
@@ -228,11 +229,11 @@ class Trainer(object):
             train_mode
 
         Returns:
-            transform
+            transforms
         """
-        transform = None
+        transforms = vision.StandardTransform()
         raise NotImplementedError()
-        return transform
+        return transforms
 
     def _get_dataloader(self, transform_train, transform_test):
         """
@@ -294,7 +295,7 @@ class ClassificationTrainer(Trainer):
         return super().test(test_loader, epoch)
 
     def _get_transforms(self, train_mode = True):
-        return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
+        return vision.StandardTransform(transforms.Compose(cifar_util.data_augmentation(self.config, train_mode)), None)
 
     def _get_dataloader(self, transform_train, transform_test):
         return cifar_util.get_data_loader(transform_train, transform_test, self.config)
@@ -352,9 +353,9 @@ class DetectionTrainer(Trainer):
 
     def _get_transforms(self, train_mode = True):
         if train_mode:
-            return transforms.ToTensor()
+            return vision.StandardTransform(transforms.ToTensor(), voc_util.VOCTargetTransform())
         else:
-            return voc_util.VOCTargetTransform()
+            return vision.StandardTransform(transforms.ToTensor())
 
     def _get_dataloader(self, transform_train, transform_test):
         return voc_util.get_data_loader(transform_train, transform_test, self.config)

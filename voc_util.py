@@ -59,8 +59,8 @@ def get_data_loader(transform_train, transform_test, config):
         # test_root = os.path.join(config.data_path, 'voctest_06-nov-2007')
         year = '2012'
 
-    trainset = VOCDetection(root = train_root, year = year, image_set = 'trainval', transform = transform_train)
-    testset = VOCDetection(root = test_root, year = year, image_set = 'test', transform = transform_test)
+    trainset = VOCDetection(root = train_root, year = year, image_set = 'trainval', transforms = transform_train)
+    testset = VOCDetection(root = test_root, year = year, image_set = 'test', transforms = transform_test)
 
     train_loader = DataLoader(trainset, batch_size = config.batch_size, shuffle = True, num_workers = config.workers)
     test_loader = DataLoader(testset, batch_size = config.test_batch, shuffle = False, num_workers = config.workers)

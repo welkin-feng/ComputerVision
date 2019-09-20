@@ -231,7 +231,7 @@ class Trainer(object):
         Returns:
             transforms
         """
-        transforms = vision.StandardTransform()
+        transforms = None
         raise NotImplementedError()
         return transforms
 
@@ -295,7 +295,7 @@ class ClassificationTrainer(Trainer):
         return super().test(test_loader, epoch)
 
     def _get_transforms(self, train_mode = True):
-        return vision.StandardTransform(transforms.Compose(cifar_util.data_augmentation(self.config, train_mode)), None)
+        return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
 
     def _get_dataloader(self, transform_train, transform_test):
         return cifar_util.get_data_loader(transform_train, transform_test, self.config)

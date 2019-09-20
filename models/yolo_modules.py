@@ -18,12 +18,9 @@ from .detection_utils import ImageList
 
 
 class GeneralizedYOLO(torch.nn.Module):
-    """  """
 
     def __init__(self, backbone, reg_net, postprocess, transform):
         """
-        Constructor for GeneralizedYOLO
-
         Args:
             backbone (torch.nn.Module): should have attribute `out_channels`
             reg_net (torch.nn.Module):
@@ -36,19 +33,19 @@ class GeneralizedYOLO(torch.nn.Module):
         self.reg_net = reg_net
         self.postprocess = postprocess
 
-    def forward(self, images, targets = None):
+    def forward(self, images, targets = None, **kwargs):
         """
-
         Args:
             images (Tensor[N, C, H, W] or list[Tensor[C, H, W]]): images to be processed
             targets (list[Dict[Tensor]]): ground-truth boxes present in the image (optional)
+            kwargs:
+                get_prior_anchor_loss: if use `prior_anchor_loss`, input `get_prior_anchor_loss = True`
 
         Returns:
             result (list[BoxList] or dict[Tensor]): the output from the model.
                 During training, it returns a dict[Tensor] which contains the losses.
                 During testing, it returns list[BoxList] contains additional fields
                 like `scores`, `labels`.
-
         """
         if self.training:
             if targets is None:
@@ -62,17 +59,14 @@ class GeneralizedYOLO(torch.nn.Module):
         # boxes (Tensor): original boxes without filtering, [N, 7*7*30] in YOLOv1 and [N, 125, 13, 13] in YOLOv2
         proposed_boxes_bias = self.reg_net(features)
         #
-        detections, detector_losses = self.postprocess(proposed_boxes_bias, images.image_sizes, targets)
+        detections, detector_losses = self.postprocess(proposed_boxes_bias, images.image_sizes, targets, **kwargs)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
-
-        if self.training:
-            return detector_losses
 
         for detection in detections:
             detection['boxes'] = detection['boxes'].long()
             detection['scores'] = detection['scores'].view(-1)
 
-        return detections
+        return detections, detector_losses
 
 
 class GeneralizedYOLOTransform(torch.nn.Module):

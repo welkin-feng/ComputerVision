@@ -23,4 +23,4 @@ from .yolo_v2 import *
 
 
 def get_model(config):
-    return globals()[config.architecture](config.num_classes, config.input_size)
+    return globals()[config.architecture](**config)

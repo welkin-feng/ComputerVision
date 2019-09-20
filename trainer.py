@@ -21,6 +21,7 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 import cifar_util
+import voc_util
 
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
@@ -153,7 +154,7 @@ class Trainer(object):
             # move tensor to GPU
             inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-            outputs, loss = self._get_model_outputs(inputs, targets, train_mode = True)
+            outputs, loss = self._get_model_outputs(inputs, targets, epoch, train_mode = True)
 
             # zero the gradient buffers
             self.optimizer.zero_grad()
@@ -192,7 +193,7 @@ class Trainer(object):
             for batch_index, (inputs, targets) in enumerate(test_loader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-                outputs, loss = self._get_model_outputs(inputs, targets, train_mode = False)
+                outputs, loss = self._get_model_outputs(inputs, targets, epoch, train_mode = False)
 
                 # calculate loss and acc
                 _test_loss += loss.item()
@@ -221,7 +222,7 @@ class Trainer(object):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
 
-    def _get_transforms(self, train_mode):
+    def _get_transforms(self, train_mode = True):
         """
         Args:
             train_mode
@@ -245,7 +246,7 @@ class Trainer(object):
         """
         raise NotImplementedError()
 
-    def _get_model_outputs(self, inputs, targets, train_mode):
+    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
         """
         Args:
             inputs:
@@ -259,7 +260,7 @@ class Trainer(object):
         outputs, loss = None, None
         raise NotImplementedError()
 
-    def _calculate_acc(self, outputs, targets, train_mode):
+    def _calculate_acc(self, outputs, targets, train_mode = True):
         """
         Args:
             outputs:
@@ -292,13 +293,13 @@ class ClassificationTrainer(Trainer):
         self.total = 0
         return super().test(test_loader, epoch)
 
-    def _get_transforms(self, train_mode):
+    def _get_transforms(self, train_mode = True):
         return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
 
     def _get_dataloader(self, transform_train, transform_test):
         return cifar_util.get_data_loader(transform_train, transform_test, self.config)
 
-    def _get_model_outputs(self, inputs, targets, train_mode):
+    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
         if train_mode:
             if self.config.mixup:
                 inputs, self.targets_a, self.targets_b, self.lam = cifar_util.mixup_data(inputs, targets,
@@ -324,7 +325,7 @@ class ClassificationTrainer(Trainer):
 
         return outputs, loss
 
-    def _calculate_acc(self, outputs, targets, train_mode):
+    def _calculate_acc(self, outputs, targets, train_mode = True):
         if self.config.mixup:
             acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
                                                                       self.total, train_mode = train_mode,
@@ -341,17 +342,71 @@ class DetectionTrainer(Trainer):
     def __init__(self, work_path, resume = False, config_dict = None):
         super().__init__(work_path, resume, config_dict)
 
-    def _get_transforms(self, train_mode):
-        pass
+    def train_step(self, train_loader, epoch):
+        self.AP_list = []
+        return super().train_step(train_loader, epoch)
+
+    def test(self, test_loader, epoch):
+        self.AP_list = []
+        return super().test(test_loader, epoch)
+
+    def _get_transforms(self, train_mode = True):
+        if train_mode:
+            return transforms.ToTensor()
+        else:
+            return voc_util.VOCTargetTransform()
 
     def _get_dataloader(self, transform_train, transform_test):
-        pass
+        return voc_util.get_data_loader(transform_train, transform_test, self.config)
 
-    def _get_model_outputs(self, inputs, targets, train_mode):
-        pass
+    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
+        outputs, loss = None, None
+        if train_mode:
+            if epoch < 10:
+                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True)
+            else:
+                outputs, loss = self.net(inputs, targets)
+        else:
+            outputs, loss = self.net(inputs)
 
-    def _calculate_acc(self, outputs, targets, train_mode):
-        pass
+        return outputs, loss
+
+    def _calculate_acc(self, outputs, targets, train_mode = True):
+        """
+        calculate mAP
+
+        Args:
+            outputs:
+            targets:
+            train_mode:
+
+        Returns:
+            mAP
+        """
+        all_cls_pr = [dict(recall = [], precision = []) for _ in range(self.config.num_classes)]
+        for idx, (pred, gt) in enumerate(zip(outputs, targets)):
+            pred_boxes = pred['boxes']
+            pred_labels = pred['labels']
+            pred_scores = pred['scores']
+            gt_difficult = gt['difficult']
+            # 去除当前图片中 diffcult 的目标
+            gt_boxes = gt['boxes']
+            gt_labels = gt['labels']
+
+            cls_set = torch.cat((pred_labels, gt_labels)).unique().tolist()
+
+            for i in cls_set:
+                pred_mask = pred_labels == i
+                gt_mask = gt_labels == i
+                recall, precision = voc_util.calculate_pr(pred_boxes[pred_mask], pred_scores[pred_mask],
+                                                          gt_boxes[gt_mask], gt_difficult[gt_mask])
+                all_cls_pr[i]['recall'].extend(recall)
+                all_cls_pr[i]['precision'].extend(precision)
+
+        all_cls_AP = [voc_util.voc_ap(pr['recall'], pr['precision']) for pr in all_cls_pr]
+        mAP = sum(all_cls_AP) / len(all_cls_pr)
+
+        return mAP
 
 
 def parse_args():

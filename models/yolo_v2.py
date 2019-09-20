@@ -111,7 +111,7 @@ class YOLOv2(GeneralizedYOLO):
                  box_iou_thresh = 0.1, nms_threshold = 0.5,
                  # transform parameters
                  min_size = 288, max_size = 608,
-                 image_mean = None, image_std = None):
+                 image_mean = None, image_std = None, **kwargs):
         """
         Args:
             backbone:

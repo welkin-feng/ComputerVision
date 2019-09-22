@@ -19,7 +19,7 @@ from .detection_utils import ImageList
 
 class GeneralizedYOLO(torch.nn.Module):
 
-    def __init__(self, backbone, reg_net, postprocess, transform):
+    def __init__(self, backbone, reg_net, postprocess, transform, use_transform = True):
         """
         Args:
             backbone (torch.nn.Module): should have attribute `out_channels`
@@ -32,6 +32,7 @@ class GeneralizedYOLO(torch.nn.Module):
         self.backbone = backbone
         self.reg_net = reg_net
         self.postprocess = postprocess
+        self.use_transform = use_transform
 
     def forward(self, images, targets = None, **kwargs):
         """
@@ -54,13 +55,18 @@ class GeneralizedYOLO(torch.nn.Module):
                 assert len(targets) == len(images), "the length of `images` do not match the length of `targets`"
 
         original_image_sizes = [img.shape[-2:] for img in images]
-        images, targets = self.transform(images, targets)
+        if isinstance(images, torch.Tensor) and images.dim() == 4 and not self.use_transform:
+            images = ImageList(images, original_image_sizes)
+        else:
+            self.use_transform = True
+            images, targets = self.transform(images, targets)
         features = self.backbone(images.tensors)
         # boxes (Tensor): original boxes without filtering, [N, 7*7*30] in YOLOv1 and [N, 125, 13, 13] in YOLOv2
         proposed_boxes_bias = self.reg_net(features)
         #
         detections, detector_losses = self.postprocess(proposed_boxes_bias, images.image_sizes, targets, **kwargs)
-        detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
+        if self.use_transform:
+            detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
         for detection in detections:
             detection['boxes'] = detection['boxes'].long()

@@ -79,27 +79,19 @@ def data_augmentation(config, train_mode = True):
     return aug
 
 
-def get_data_loader(transform_train, transform_test, config):
+def get_data_loader(transform, config, train_mode):
     assert config.dataset in ['cifar10', 'cifar100']
     if config.dataset == "cifar10":
-        trainset = torchvision.datasets.CIFAR10(
-            root = config.data_path, train = True, download = True, transform = transform_train)
+        dataset = torchvision.datasets.CIFAR10(root = config.data_path, train = train_mode, download = True,
+                                               transform = transform)
+    else:
+        dataset = torchvision.datasets.CIFAR100(
+            root = config.data_path, train = train_mode, download = True, transform = transform)
 
-        testset = torchvision.datasets.CIFAR10(
-            root = config.data_path, train = False, download = True, transform = transform_test)
-    elif config.dataset == "cifar100":
-        trainset = torchvision.datasets.CIFAR100(
-            root = config.data_path, train = True, download = True, transform = transform_train)
+    data_loader = DataLoader(dataset, batch_size = config.batch_size,
+                             shuffle = train_mode, num_workers = config.workers)
 
-        testset = torchvision.datasets.CIFAR100(
-            root = config.data_path, train = False, download = True, transform = transform_test)
-
-    train_loader = DataLoader(trainset, batch_size = config.batch_size,
-                              shuffle = True, num_workers = config.workers)
-
-    test_loader = DataLoader(testset, batch_size = config.test_batch,
-                             shuffle = False, num_workers = config.workers)
-    return train_loader, test_loader
+    return data_loader
 
 
 def mixup_data(x, y, alpha, device):

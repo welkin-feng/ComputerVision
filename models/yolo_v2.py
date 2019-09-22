@@ -111,7 +111,8 @@ class YOLOv2(GeneralizedYOLO):
                  box_iou_thresh = 0.1, nms_threshold = 0.5,
                  # transform parameters
                  min_size = 288, max_size = 608,
-                 image_mean = None, image_std = None, **kwargs):
+                 image_mean = None, image_std = None,
+                 use_transform = True, **kwargs):
         """
         Args:
             backbone:
@@ -163,7 +164,7 @@ class YOLOv2(GeneralizedYOLO):
             image_std = [0.229, 0.224, 0.225]
         transform = GeneralizedYOLOTransform(min_size, max_size, image_mean, image_std)
 
-        super().__init__(backbone, reg_net, postprocess, transform)
+        super().__init__(backbone, reg_net, postprocess, transform, use_transform)
 
 
 class YOLOv2Postprocess(nn.Module):
@@ -187,6 +188,53 @@ class YOLOv2Postprocess(nn.Module):
         self.anchors = anchor_boxes
         self.box_iou_thresh = box_iou_thresh
         self.nms_thresh = nms_thresh
+
+    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False):
+        """
+        Args:
+            boxes_offset (Tensor): shape [N, 7*7*30] in YOLOv1, [N, 13, 13, 125] in YOLOv2
+            image_sizes (List[Tuple[height, width]]):
+            targets (List[Dict[Tensor]): ground-truth boxes present in the image (optional).
+                If provided, each element in the dict should contain a field `boxes`,
+                with the locations of the ground-truth boxes, and a field `labels`
+                with the classifications of the ground-truth boxes.
+            get_prior_anchor_loss
+
+        Returns:
+            result (List[Dict[Tensor]]): the predicted boxes from the RPN, one Tensor per image.
+            losses (Dict[Tensor]): the losses for the model during training. During
+                testing, it is an empty dict.
+        """
+        proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
+            boxes_offset, get_prior_anchor_loss)
+
+        result, losses = [], 0
+        if self.training:
+            self.check_targets(targets)
+            assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
+
+            losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
+                                        image_sizes)
+            prior_scale = 0.01
+            losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
+                     losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
+
+        # transform xywh to xyxy
+        proposed_boxes_loc = self.bboxes_transform(proposed_boxes_loc, image_sizes)
+        # filter
+        cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_loc,
+                                                               proposed_boxes_score)
+        # nms
+        pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
+        num_images = len(pred_boxes_loc)
+        for i in range(num_images):
+            result.append(
+                dict(boxes = pred_boxes_loc[i],
+                     scores = pred_boxes_score[i],
+                     labels = pred_boxes_label[i])
+            )
+
+        return result, losses
 
     def get_proposed_boxes(self, boxes_offset, get_prior_anchor_loss):
         N, C, H, W = boxes_offset.shape
@@ -410,53 +458,6 @@ class YOLOv2Postprocess(nn.Module):
                       obj_score_losses = obj_score_losses,
                       noobj_score_losses = noobj_score_losses)
         return losses
-
-    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False):
-        """
-        Args:
-            boxes_offset (Tensor): shape [N, 7*7*30] in YOLOv1, [N, 13, 13, 125] in YOLOv2
-            image_sizes (List[Tuple[height, width]]):
-            targets (List[Dict[Tensor]): ground-truth boxes present in the image (optional).
-                If provided, each element in the dict should contain a field `boxes`,
-                with the locations of the ground-truth boxes, and a field `labels`
-                with the classifications of the ground-truth boxes.
-            get_prior_anchor_loss
-
-        Returns:
-            result (List[Dict[Tensor]]): the predicted boxes from the RPN, one Tensor per image.
-            losses (Dict[Tensor]): the losses for the model during training. During
-                testing, it is an empty dict.
-        """
-        proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
-            boxes_offset, get_prior_anchor_loss)
-
-        result, losses = [], 0
-        if self.training:
-            self.check_targets(targets)
-            assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
-
-            losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
-                                        image_sizes)
-            prior_scale = 0.01
-            losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
-                     losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
-
-        # transform xywh to xyxy
-        proposed_boxes_loc = self.bboxes_transform(proposed_boxes_loc, image_sizes)
-        # filter
-        cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_loc,
-                                                               proposed_boxes_score)
-        # nms
-        pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
-        num_images = len(pred_boxes_loc)
-        for i in range(num_images):
-            result.append(
-                dict(boxes = pred_boxes_loc[i],
-                     scores = pred_boxes_score[i],
-                     labels = pred_boxes_label[i])
-            )
-
-        return result, losses
 
 
 def yolo_v2_darknet19(num_classes, **kwargs):

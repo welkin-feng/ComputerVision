@@ -20,7 +20,6 @@ import torchvision.transforms.functional as F
 
 from torchvision.datasets import VOCDetection
 from torch.utils.data import DataLoader
-from torch.utils.data._utils import worker
 
 
 class VOCTransformCompose(object):
@@ -60,7 +59,7 @@ class VOCTransformRandomScale(object):
 
     def __call__(self, img, target):
         r_scale = random.uniform(*self.scale)
-        img = F.resize(img, (img.size[1] * r_scale, img.size[0] * r_scale))
+        img = F.resize(img, (int(img.size[1] * r_scale), int(img.size[0] * r_scale)))
         target['boxes'] = (target['boxes'] * r_scale).long().float()
         return img, target
 
@@ -93,13 +92,13 @@ class VOCTransformExpand(object):
         w, h = img.size
         if random.random() < self.p:
             if self.ratio < 1:
-                img_h, img_w = h * self.ratio, w * self.ratio
+                img_h, img_w = int(h * self.ratio), int(w * self.ratio)
                 expand_h, expand_w = h, w
                 img = F.resize(img, (img_h, img_w))
                 target['boxes'] = (target['boxes'] * self.ratio).long().float()
             else:
                 img_h, img_w = h, w
-                expand_h, expand_w = h * self.ratio, w * self.ratio
+                expand_h, expand_w = int(h * self.ratio), int(w * self.ratio)
             i, j = self.get_params((img_h, img_w), (expand_h, expand_w))
             img = F.pad(img, (j, i, expand_w - img_w - j, expand_h - img_h - i))
             target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + j

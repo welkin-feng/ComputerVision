@@ -11,15 +11,207 @@ File Name:  voc_util.py
 __author__ = 'Welkin'
 __date__ = '2019/9/16 15:36'
 
-import torch
+import warnings
 import os
+import random
 import numpy as np
+import torch
+import torchvision.transforms.functional as F
 
 from torchvision.datasets import VOCDetection
 from torch.utils.data import DataLoader
+from torch.utils.data._utils import worker
 
 
-class VOCTargetTransform():
+class VOCTransformCompose(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, img, target):
+        for t in self.transforms:
+            img, target = t(img, target)
+        return img, target
+
+
+class VOCTransformFlip(object):
+    def __init__(self, horizontal_flip_prob = 0.5, vertical_flip_prob = 0.5):
+        self.horizontal_flip_prob = horizontal_flip_prob
+        self.vertical_flip_prob = vertical_flip_prob
+
+    def __call__(self, img, target):
+        w, h = img.size
+        if random.random() < self.vertical_flip_prob:
+            img = F.vflip(img)
+            target['boxes'][:, (0, 2)] = w - target['boxes'][:, (2, 0)]
+        if random.random() < self.horizontal_flip_prob:
+            img = F.hflip(img)
+            target['boxes'][:, (1, 3)] = h - target['boxes'][:, (3, 1)]
+        return img, target
+
+
+class VOCTransformRandomScale(object):
+    def __init__(self, scale = (0.8, 1.2)):
+        if isinstance(scale, (int, float)):
+            scale = (scale, scale)
+        assert (isinstance(scale, (list, tuple)) and len(scale) == 2)
+        if scale[0] > scale[1]:
+            warnings.warn("range should be of kind (min, max)")
+        self.scale = scale
+
+    def __call__(self, img, target):
+        r_scale = random.uniform(*self.scale)
+        img = F.resize(img, (img.size[1] * r_scale, img.size[0] * r_scale))
+        target['boxes'] = (target['boxes'] * r_scale).long().float()
+        return img, target
+
+
+class VOCTransformExpand(object):
+    def __init__(self, ratio, prob = 0.5):
+        self.ratio = ratio
+        self.p = prob
+
+    @staticmethod
+    def get_params(img_size, output_size):
+        """Get parameters for ``expand`` for a random expand.
+
+        Args:
+            img_size (tuple): Image size (h, w).
+            output_size (tuple): Expected output size of the expend.
+
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        h, w = img_size
+        th, tw = output_size
+        if w == tw and h == th:
+            return 0, 0
+        i = random.randint(0, th - h)
+        j = random.randint(0, tw - w)
+        return i, j
+
+    def __call__(self, img, target):
+        w, h = img.size
+        if random.random() < self.p:
+            if self.ratio < 1:
+                img_h, img_w = h * self.ratio, w * self.ratio
+                expand_h, expand_w = h, w
+                img = F.resize(img, (img_h, img_w))
+                target['boxes'] = (target['boxes'] * self.ratio).long().float()
+            else:
+                img_h, img_w = h, w
+                expand_h, expand_w = h * self.ratio, w * self.ratio
+            i, j = self.get_params((img_h, img_w), (expand_h, expand_w))
+            img = F.pad(img, (j, i, expand_w - img_w - j, expand_h - img_h - i))
+            target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + j
+            target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + i
+
+        return img, target
+
+
+class VOCTransformRandomCrop(object):
+    def __init__(self, size, padding = None, pad_if_needed = True, fill = 0, padding_mode = 'constant'):
+        """Crop the given PIL Image at a random location.
+
+        Args:
+            size (sequence or int): Desired output size of the crop. If size is an int instead of sequence like
+                (h, w), a square crop (size, size) is made.
+            padding (int or sequence, optional): Optional padding on each border of the image. Default is None,
+                i.e no padding. If a sequence of length 4 is provided, it is used to pad left, top, right, bottom
+                borders respectively. If a sequence of length 2 is provided, it is used to pad left/right, top/bottom
+                borders, respectively.
+            pad_if_needed (boolean): It will pad the image if smaller than the desired size to avoid raising an
+                exception. Since cropping is done after padding, the padding seems to be done at a random offset.
+            fill: Pixel fill value for constant fill. Default is 0. If a tuple of length 3, it is used to fill R, G, B
+                channels respectively. This value is only used when the padding_mode is constant
+            padding_mode: Type of padding. Should be: constant, edge, reflect or symmetric. Default is constant.
+
+                 - constant: pads with a constant value, this value is specified with fill
+                 - edge: pads with the last value on the edge of the image
+                 - reflect: pads with reflection of image (without repeating the last value on the edge)
+                    padding [1, 2, 3, 4] with 2 elements on both sides in reflect mode
+                    will result in [3, 2, 1, 2, 3, 4, 3, 2]
+                 - symmetric: pads with reflection of image (repeating the last value on the edge)
+                    padding [1, 2, 3, 4] with 2 elements on both sides in symmetric mode
+                    will result in [2, 1, 1, 2, 3, 4, 4, 3]
+        """
+        if isinstance(size, (int, float)):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+        self.padding = padding
+        self.pad_if_needed = pad_if_needed
+        self.fill = fill
+        self.padding_mode = padding_mode
+
+    @staticmethod
+    def get_params(img, output_size):
+        """Get parameters for ``crop`` for a random crop.
+
+        Args:
+            img (PIL Image): Image to be cropped.
+            output_size (tuple): Expected output size of the crop.
+
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+        w, h = img.size
+        th, tw = output_size
+        if w == tw and h == th:
+            return 0, 0, h, w
+
+        i = random.randint(0, h - th)
+        j = random.randint(0, w - tw)
+        return i, j, th, tw
+
+    def __call__(self, img, target):
+        """
+        Args:
+            img (PIL Image): Image to be cropped.
+
+        Returns:
+            PIL Image: Cropped image.
+        """
+        if self.padding is not None:
+            img = F.pad(img, self.padding, self.fill, self.padding_mode)
+            if isinstance(self.padding, (int, float)):
+                target['boxes'] = target['boxes'] + int(self.padding)
+            elif isinstance(self.padding, (list, tuple)) and len(self.padding) >= 2:
+                target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + self.padding[0]
+                target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + self.padding[1]
+
+        # pad the width if needed
+        if self.pad_if_needed and img.size[0] < self.size[1]:
+            img = F.pad(img, (self.size[1] - img.size[0], 0), self.fill, self.padding_mode)
+            target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + (self.size[1] - img.size[0])
+        # pad the height if needed
+        if self.pad_if_needed and img.size[1] < self.size[0]:
+            img = F.pad(img, (0, self.size[0] - img.size[1]), self.fill, self.padding_mode)
+            target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + (self.size[0] - img.size[1])
+
+        center_x = target['boxes'][:, 0::2].mean(dim = -1)
+        center_y = target['boxes'][:, 1::2].mean(dim = -1)
+
+        for _ in range(20):
+            i, j, h, w = self.get_params(img, self.size)
+            remain_obj_idx = (center_x > j) * (center_x < j + w) * (center_y > i) * (center_y < i + h)
+            if remain_obj_idx.sum() > 0:
+                img = F.crop(img, i, j, h, w)
+                target['boxes'][:, 0::2] = (target['boxes'][:, 0::2] - j).clamp(min = 0, max = w)
+                target['boxes'][:, 1::2] = (target['boxes'][:, 1::2] - i).clamp(min = 0, max = h)
+                center_x = target['boxes'][:, 0::2].mean(dim = -1)
+                center_y = target['boxes'][:, 1::2].mean(dim = -1)
+                obj_idx = (center_x > 0) * (center_x < w) * (center_y > 0) * (center_y < h)
+                target['difficult'][~remain_obj_idx] = 1
+                target['boxes'] = target['boxes'][obj_idx]
+                target['labels'] = target['labels'][obj_idx]
+                target['difficult'] = target['difficult'][obj_idx]
+
+                return img, target
+
+        raise ValueError("`size` is too small, need a bigger crop `size`")
+
+
+class VOCTargetTransform(object):
 
     def __init__(self):
         self.cls_to_idx = {'aeroplane': 0, 'bicycle': 1, 'bird': 2, 'boat': 3, 'bottle': 4,
@@ -42,30 +234,64 @@ class VOCTargetTransform():
                            int(t['bndbox']['xmax']), int(t['bndbox']['ymax']), ])
             labels.append(self.cls_to_idx[t['name']])
             diff.append(int(t['difficult']))
-        target = dict(boxes = torch.tensor(coords),
+        target = dict(boxes = torch.tensor(coords).float(),
                       labels = torch.tensor(labels).long(),
                       difficult = torch.tensor(diff).long())
         return target
 
 
-def get_data_loader(transform_train, transform_test, config):
+def voc_collate(batch):
+    r"""Puts each data field into a tensor with outer dimension batch size"""
+
+    elem = batch[0]
+    elem_type = type(elem)
+    if isinstance(elem, torch.Tensor):
+        out = None
+        # if worker.get_worker_info() is not None:
+        #     # If we're in a background process, concatenate directly into a
+        #     # shared memory tensor to avoid an extra copy
+        #     numel = sum([x.numel() for x in batch])
+        #     storage = elem.storage()._new_shared(numel)
+        #     out = elem.new(storage)
+        return torch.stack(batch, 0, out = out)
+    elif isinstance(elem, float):
+        return torch.tensor(batch, dtype = torch.float64)
+    elif isinstance(elem, dict):
+        return batch
+    elif isinstance(elem, (tuple, list)):  # namedtuple
+        return elem_type((voc_collate(samples) for samples in zip(*batch)))
+
+    default_collate_err_msg_format = ("default_collate: batch must contain tensors, numpy arrays, numbers, "
+                                      "dicts or lists; found {}")
+
+    raise TypeError(default_collate_err_msg_format.format(elem_type))
+
+
+def get_data_loader(transforms, config, train_mode = True):
     assert config.dataset in ['voc2007', 'voc2012']
     if config.dataset == "voc2007":
-        train_root = os.path.join(config.data_path, 'voctrainval_06-nov-2007')
-        test_root = os.path.join(config.data_path, 'voctest_06-nov-2007')
         year = '2007'
+        if train_mode:
+            root = os.path.join(config.data_path, 'voctrainval_06-nov-2007')
+            image_set = 'trainval'
+        else:
+            root = os.path.join(config.data_path, 'voctest_06-nov-2007')
+            image_set = 'test'
+
     elif config.dataset == "voc2012":
-        # train_root = os.path.join(config.data_path, 'voctrainval_06-nov-2007')
-        # test_root = os.path.join(config.data_path, 'voctest_06-nov-2007')
         year = '2012'
+        if train_mode:
+            root = os.path.join(config.data_path, 'voctrainval_11-may-2012')
+            image_set = 'trainval'
+        else:
+            root = os.path.join(config.data_path, 'voctest_11-may-2012')
+            image_set = 'test'
 
-    trainset = VOCDetection(root = train_root, year = year, image_set = 'trainval', transforms = transform_train)
-    testset = VOCDetection(root = test_root, year = year, image_set = 'test', transforms = transform_test)
+    dataset = VOCDetection(root = root, year = year, image_set = image_set, transforms = transforms)
+    data_loader = DataLoader(dataset, batch_size = config.batch_size, shuffle = train_mode,
+                             num_workers = config.workers, collate_fn = voc_collate)
 
-    train_loader = DataLoader(trainset, batch_size = config.batch_size, shuffle = True, num_workers = config.workers)
-    test_loader = DataLoader(testset, batch_size = config.test_batch, shuffle = False, num_workers = config.workers)
-
-    return train_loader, test_loader
+    return data_loader
 
 
 def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = torch.arange(0, 1, 0.1),
@@ -77,6 +303,7 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
         pred_boxes:
         pred_scores:
         gt_boxes:
+        gt_difficult:
         score_range:
         iou_thresh:
 

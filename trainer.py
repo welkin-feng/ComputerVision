@@ -19,13 +19,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
-import torchvision.datasets.vision as vision
 import cifar_util
 import voc_util
 
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
+from torchvision.transforms import transforms
+from torchvision.datasets import vision
 from models import *
 from util import *
 
@@ -89,6 +89,7 @@ class Trainer(object):
 
         # 从checkpoint中恢复网络模型
         # resume from a checkpoint
+        self.epoch = 0
         self.last_epoch = -1
         self.best_prec = 0
         if self.args.work_path:
@@ -116,7 +117,8 @@ class Trainer(object):
 
         # 得到可用于torch的DataLoader
         # get data loader
-        train_loader, test_loader = self._get_dataloader(transform_train, transform_test)
+        train_loader = self._get_dataloader(transform_train, train_mode = True)
+        test_loader = self._get_dataloader(transform_test, train_mode = False)
 
         # 开始训练
         # start training network
@@ -124,38 +126,39 @@ class Trainer(object):
 
         train_loss = None
         for epoch in range(self.last_epoch + 1, self.config.epochs):
+            self.epoch = epoch
             # 更新学习率lr
             # adjust learning rate
             if self.lr_scheduler:
                 if self.config.lr_scheduler.type == 'ADAPTIVE':
                     if self.config.lr_scheduler.mode == 'max':
-                        self.lr_scheduler.step(self.best_prec, epoch)
+                        self.lr_scheduler.step(self.best_prec, self.epoch)
                     elif self.config.lr_scheduler.mode == 'min' and train_loss is not None:
-                        self.lr_scheduler.step(train_loss, epoch)
+                        self.lr_scheduler.step(train_loss, self.epoch)
                 else:
-                    self.lr_scheduler.step(epoch)
+                    self.lr_scheduler.step(self.epoch)
 
             # train one epoch
-            train_loss, _ = self.train_step(train_loader, epoch)
+            train_loss, _ = self.train_step(train_loader)
             # validate network
-            if epoch == 0 or (epoch + 1) % self.config.eval_freq == 0 or epoch == self.config.epochs - 1:
-                self.test(test_loader, epoch)
+            if self.epoch == 0 or (self.epoch + 1) % self.config.eval_freq == 0 or self.epoch == self.config.epochs - 1:
+                self.test(test_loader)
 
         self.logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(self.best_prec))
 
-    def train_step(self, train_loader, epoch):
+    def train_step(self, train_loader):
         start = time.time()
         self.net.train()
 
         _train_loss, train_loss, train_acc = 0, 0, 0
 
-        self.logger.info(" === Epoch: [{}/{}] === ".format(epoch + 1, self.config.epochs))
+        self.logger.info(" === Epoch: [{}/{}] === ".format(self.epoch + 1, self.config.epochs))
 
         for batch_index, (inputs, targets) in enumerate(train_loader):
             # move tensor to GPU
             inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-            outputs, loss = self._get_model_outputs(inputs, targets, epoch, train_mode = True)
+            outputs, loss = self._get_model_outputs(inputs, targets, train_mode = True)
 
             # zero the gradient buffers
             self.optimizer.zero_grad()
@@ -178,23 +181,23 @@ class Trainer(object):
 
         end = time.time()
         self.logger.info("   == cost time: {:.4f}s".format(end - start))
-        self.writer.add_scalar('learning_rate', self.current_lr, epoch)
-        self.writer.add_scalar('train_loss', train_loss, epoch)
-        self.writer.add_scalar('train_acc', train_acc, epoch)
+        self.writer.add_scalar('learning_rate', self.current_lr, self.epoch)
+        self.writer.add_scalar('train_loss', train_loss, self.epoch)
+        self.writer.add_scalar('train_acc', train_acc, self.epoch)
 
         return train_loss, train_acc
 
-    def test(self, test_loader, epoch):
+    def test(self, test_loader):
         self.net.eval()
         _test_loss, test_loss, test_acc = 0, 0, 0
 
-        self.logger.info(" === Validate ===".format(epoch + 1, self.config.epochs))
+        self.logger.info(" === Validate ===".format(self.epoch + 1, self.config.epochs))
 
         with torch.no_grad():
             for batch_index, (inputs, targets) in enumerate(test_loader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-                outputs, loss = self._get_model_outputs(inputs, targets, epoch, train_mode = False)
+                outputs, loss = self._get_model_outputs(inputs, targets, train_mode = False)
 
                 # calculate loss and acc
                 _test_loss += loss.item()
@@ -202,8 +205,8 @@ class Trainer(object):
                 test_acc = self._calculate_acc(outputs, targets, train_mode = False)
 
         self.logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
-        self.writer.add_scalar('test_loss', test_loss, epoch)
-        self.writer.add_scalar('test_acc', test_acc, epoch)
+        self.writer.add_scalar('test_loss', test_loss, self.epoch)
+        self.writer.add_scalar('test_acc', test_acc, self.epoch)
 
         # Save checkpoint.
         test_acc = 100. * test_acc
@@ -213,7 +216,7 @@ class Trainer(object):
         state = {
             'state_dict': self.net.state_dict(),
             'best_prec': self.best_prec,
-            'last_epoch': epoch,
+            'last_epoch': self.epoch,
             'optimizer': self.optimizer.state_dict(),
         }
         save_checkpoint(state, is_best, self.args.work_path + '/' + self.config.ckpt_name)
@@ -235,19 +238,18 @@ class Trainer(object):
         raise NotImplementedError()
         return transforms
 
-    def _get_dataloader(self, transform_train, transform_test):
+    def _get_dataloader(self, transforms, train_mode = True):
         """
         Args:
-            transform_train:
-            transform_test:
+            transforms:
+            train_mode:
 
         Returns:
-            train_loader
-            test_loader
+            data_loader
         """
         raise NotImplementedError()
 
-    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
+    def _get_model_outputs(self, inputs, targets, train_mode = True):
         """
         Args:
             inputs:
@@ -284,23 +286,23 @@ class ClassificationTrainer(Trainer):
         # define loss
         self.criterion = nn.CrossEntropyLoss()
 
-    def train_step(self, train_loader, epoch):
+    def train_step(self, train_loader):
         self.correct = 0
         self.total = 0
-        return super().train_step(train_loader, epoch)
+        return super().train_step(train_loader)
 
-    def test(self, test_loader, epoch):
+    def test(self, test_loader):
         self.correct = 0
         self.total = 0
-        return super().test(test_loader, epoch)
+        return super().test(test_loader)
 
     def _get_transforms(self, train_mode = True):
         return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
 
-    def _get_dataloader(self, transform_train, transform_test):
-        return cifar_util.get_data_loader(transform_train, transform_test, self.config)
+    def _get_dataloader(self, transforms, train_mode = True):
+        return cifar_util.get_data_loader(transforms, self.config, train_mode)
 
-    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
+    def _get_model_outputs(self, inputs, targets, train_mode = True):
         if train_mode:
             if self.config.mixup:
                 inputs, self.targets_a, self.targets_b, self.lam = cifar_util.mixup_data(inputs, targets,
@@ -343,27 +345,47 @@ class DetectionTrainer(Trainer):
     def __init__(self, work_path, resume = False, config_dict = None):
         super().__init__(work_path, resume, config_dict)
 
-    def train_step(self, train_loader, epoch):
+    def train_step(self, train_loader):
         self.AP_list = []
-        return super().train_step(train_loader, epoch)
+        if self.epoch % 5 == 0:
+            train_loader = self._get_dataloader(self._get_transforms(train_mode = True), train_mode = True)
+        return super().train_step(train_loader)
 
-    def test(self, test_loader, epoch):
+    def test(self, test_loader):
         self.AP_list = []
-        return super().test(test_loader, epoch)
+        return super().test(test_loader)
 
     def _get_transforms(self, train_mode = True):
         if train_mode:
-            return vision.StandardTransform(transforms.ToTensor(), voc_util.VOCTargetTransform())
+            size_list = (320, 352, 384, 416, 448, 480, 512, 544, 576, 608)
+            size = 320
+            if self.epoch % 5 == 0:
+                size = size_list[self.epoch // 5 % 10]
+
+            img_trans = transforms.Compose([transforms.ColorJitter(),
+                                            transforms.ToTensor(),
+                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+            target_trans = voc_util.VOCTargetTransform()
+            trans = voc_util.VOCTransformCompose([vision.StandardTransform(None, target_trans),
+                                                  voc_util.VOCTransformFlip(0.5, 0.5),
+                                                  voc_util.VOCTransformRandomScale(scale = (0.8, 1.2)),
+                                                  voc_util.VOCTransformExpand(ratio = 1.5),
+                                                  voc_util.VOCTransformRandomCrop(size = size),
+                                                  vision.StandardTransform(img_trans, None)])
+            return trans
         else:
-            return vision.StandardTransform(transforms.ToTensor())
+            return vision.StandardTransform(transforms.Compose([transforms.RandomCrop(size = 320, pad_if_needed = True),
+                                                                transforms.ToTensor(),
+                                                                transforms.Normalize([0.485, 0.456, 0.406],
+                                                                                     [0.229, 0.224, 0.225])]))
 
-    def _get_dataloader(self, transform_train, transform_test):
-        return voc_util.get_data_loader(transform_train, transform_test, self.config)
+    def _get_dataloader(self, transforms, train_mode = True):
+        return voc_util.get_data_loader(transforms, self.config, train_mode)
 
-    def _get_model_outputs(self, inputs, targets, epoch, train_mode = True):
+    def _get_model_outputs(self, inputs, targets, train_mode = True):
         outputs, loss = None, None
         if train_mode:
-            if epoch < 10:
+            if self.epoch < 10:
                 outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True)
             else:
                 outputs, loss = self.net(inputs, targets)

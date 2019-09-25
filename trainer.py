@@ -367,8 +367,9 @@ class DetectionTrainer(Trainer):
             target_trans = voc_util.VOCTargetTransform()
             trans = voc_util.VOCTransformCompose([vision.StandardTransform(None, target_trans),
                                                   voc_util.VOCTransformFlip(0.5, 0.5),
+                                                  voc_util.VOCTransformResize(size = size),
                                                   voc_util.VOCTransformRandomScale(scale = (0.8, 1.2)),
-                                                  voc_util.VOCTransformExpand(ratio = 1.5),
+                                                  voc_util.VOCTransformRandomExpand(ratio = (0.8, 1.2)),
                                                   voc_util.VOCTransformRandomCrop(size = size),
                                                   vision.StandardTransform(img_trans, None)])
             return trans

@@ -48,6 +48,29 @@ class VOCTransformFlip(object):
         return img, target
 
 
+class VOCTransformResize(object):
+    def __init__(self, size):
+        """
+        Args:
+            size (sequence or int): Desired output size. If size is a sequence like (h, w), output size will be matched
+                to this. If size is an int, smaller edge of the image will be matched to this number.
+                i.e, if height > width, then image will be rescaled to (size * height / width, size)
+        """
+        assert isinstance(size, int) or (isinstance(size, (list, tuple)) and len(size) == 2)
+        self.size = size
+
+    def __call__(self, img, target):
+        w, h = img.size
+        img = F.resize(img, self.size)
+        if isinstance(self.size, int):
+            w_ratio, h_ratio = self.size / min(w, h), self.size / min(w, h)
+        else:
+            w_ratio, h_ratio = self.size[1] / w, self.size[0] / h
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
+        return img, target
+
+
 class VOCTransformRandomScale(object):
     def __init__(self, scale = (0.8, 1.2)):
         if isinstance(scale, (int, float)):
@@ -101,10 +124,20 @@ class VOCTransformExpand(object):
                 expand_h, expand_w = int(h * self.ratio), int(w * self.ratio)
             i, j = self.get_params((img_h, img_w), (expand_h, expand_w))
             img = F.pad(img, (j, i, expand_w - img_w - j, expand_h - img_h - i))
-            target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + j
-            target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + i
+            target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + j
+            target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + i
 
         return img, target
+
+
+class VOCTransformRandomExpand(VOCTransformExpand):
+    def __init__(self, ratio = (0.8, 1.2)):
+        assert isinstance(ratio, (float, int)) or (isinstance(ratio, (list, tuple)) and len(ratio) == 2)
+        if isinstance(ratio, (list, tuple)):
+            if ratio[0] > ratio[1]:
+                warnings.warn("range should be of kind (min, max)")
+            ratio = random.uniform(*ratio)
+        super().__init__(ratio, prob = 1)
 
 
 class VOCTransformRandomCrop(object):
@@ -175,30 +208,30 @@ class VOCTransformRandomCrop(object):
             if isinstance(self.padding, (int, float)):
                 target['boxes'] = target['boxes'] + int(self.padding)
             elif isinstance(self.padding, (list, tuple)) and len(self.padding) >= 2:
-                target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + self.padding[0]
-                target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + self.padding[1]
+                target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + self.padding[0]
+                target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + self.padding[1]
 
         # pad the width if needed
         if self.pad_if_needed and img.size[0] < self.size[1]:
             img = F.pad(img, (self.size[1] - img.size[0], 0), self.fill, self.padding_mode)
-            target['boxes'][:, 0::2] = target['boxes'][:, 0::2] + (self.size[1] - img.size[0])
+            target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + (self.size[1] - img.size[0])
         # pad the height if needed
         if self.pad_if_needed and img.size[1] < self.size[0]:
             img = F.pad(img, (0, self.size[0] - img.size[1]), self.fill, self.padding_mode)
-            target['boxes'][:, 1::2] = target['boxes'][:, 1::2] + (self.size[0] - img.size[1])
+            target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + (self.size[0] - img.size[1])
 
-        center_x = target['boxes'][:, 0::2].mean(dim = -1)
-        center_y = target['boxes'][:, 1::2].mean(dim = -1)
+        center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
+        center_y = target['boxes'][:, (1, 3)].mean(dim = -1)
 
         for _ in range(20):
             i, j, h, w = self.get_params(img, self.size)
             remain_obj_idx = (center_x > j) * (center_x < j + w) * (center_y > i) * (center_y < i + h)
             if remain_obj_idx.sum() > 0:
                 img = F.crop(img, i, j, h, w)
-                target['boxes'][:, 0::2] = (target['boxes'][:, 0::2] - j).clamp(min = 0, max = w)
-                target['boxes'][:, 1::2] = (target['boxes'][:, 1::2] - i).clamp(min = 0, max = h)
-                center_x = target['boxes'][:, 0::2].mean(dim = -1)
-                center_y = target['boxes'][:, 1::2].mean(dim = -1)
+                target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] - j).clamp(min = 0, max = w)
+                target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] - i).clamp(min = 0, max = h)
+                center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
+                center_y = target['boxes'][:, (1, 3)].mean(dim = -1)
                 obj_idx = (center_x > 0) * (center_x < w) * (center_y > 0) * (center_y < h)
                 target['difficult'][~remain_obj_idx] = 1
                 target['boxes'] = target['boxes'][obj_idx]

@@ -232,11 +232,10 @@ class Trainer(object):
             train_mode
 
         Returns:
-            transforms
+            trans
         """
-        transforms = None
+        trans = None
         raise NotImplementedError()
-        return transforms
 
     def _get_dataloader(self, transforms, train_mode = True):
         """
@@ -383,7 +382,6 @@ class DetectionTrainer(Trainer):
         return voc_util.get_data_loader(transforms, self.config, train_mode)
 
     def _get_model_outputs(self, inputs, targets, train_mode = True):
-        outputs, loss = None, None
         if train_mode:
             if self.epoch < 10:
                 outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True)

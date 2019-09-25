@@ -239,6 +239,13 @@ class VOCTargetTransform(object):
         return target
 
 
+class VOCTarget(tuple):
+    def to(self, *args, **kwargs):
+        return tuple({'boxes': t['boxes'].to(*args, **kwargs),
+                      'labels': t['labels'].to(*args, **kwargs),
+                      'difficult': t['difficult'].to(*args, **kwargs)} for t in self)
+
+
 def voc_collate(batch):
     r"""Puts each data field into a tensor with outer dimension batch size"""
 
@@ -256,7 +263,7 @@ def voc_collate(batch):
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype = torch.float64)
     elif isinstance(elem, dict):
-        return batch
+        return VOCTarget(batch)
     elif isinstance(elem, (tuple, list)):  # namedtuple
         return elem_type((voc_collate(samples) for samples in zip(*batch)))
 

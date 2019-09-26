@@ -357,7 +357,8 @@ class YOLOv2Postprocess(nn.Module):
 
             # target transform to xywh
             t_boxes = self.bboxes_transform_to_xywh(t_boxes)
-            coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1) / (image_size[0] * image_size[1])  # [t_boxes.shape[0],]
+            # [t_boxes.shape[0], 1]
+            coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
             t_boxes = t_boxes / self.size_divisible
 
             # 得到每个gt落在哪个cell
@@ -411,8 +412,9 @@ class YOLOv2Postprocess(nn.Module):
         cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
         # 计算其coord loss, class loss 和 iou_score loss
         class_loss = class_scale * F.cross_entropy(cor_box_cls, t_labels)
-        coord_loss = (coord_scale * (F.mse_loss(cor_box_loc[:, :2], t_boxes[:, :2], reduce = False) +
-                                     F.mse_loss(cor_box_loc[:, 2:].log(), t_boxes[:, 2:].log(), reduce = False))).mean()
+        coord_loss = torch.mean(coord_scale * (F.mse_loss(cor_box_loc[:, :2], t_boxes[:, :2], reduction = 'none') +
+                                               F.mse_loss(cor_box_loc[:, 2:].log(), t_boxes[:, 2:].log(),
+                                                          reduction = 'none')))
         obj_score_loss = object_scale * F.mse_loss(cor_box_score, torch.ones_like(cor_box_score))
 
         return class_loss, coord_loss, obj_score_loss

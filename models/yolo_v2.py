@@ -242,25 +242,19 @@ class YOLOv2Postprocess(nn.Module):
         stride = self.num_classes + 5
         assert C == num_anchors * stride, "the channels of boxes_offset can not match the number of anchors"
 
-        # [N, H, W, C]
-        boxes_offset = boxes_offset.permute(0, 2, 3, 1)
-        # [N, H, W, 5, 25]
-        boxes_offset = boxes_offset.reshape(N, H, W, num_anchors, stride)
+        boxes_offset = boxes_offset.permute(0, 2, 3, 1)  # [N, H, W, C]
+        boxes_offset = boxes_offset.reshape(N, H, W, num_anchors, stride)  # [N, H, W, 5, 25]
 
-        # [N, H, W, 5, 20]
-        proposed_boxes_classes = boxes_offset[..., :self.num_classes]
-        # [N, H, W, 5, 1]
-        proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])
-        # [N, H, W, 5, 2]
-        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])
-        # [N, H, W, 5, 2]
-        boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]
+        proposed_boxes_classes = boxes_offset[..., :self.num_classes]  # [N, H, W, 5, 20]
+        proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])  # [N, H, W, 5, 1]
+
+        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])  # [N, H, W, 5, 2]
+        boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]  # [N, H, W, 5, 2]
 
         prior_anchor_losses = 0
         if get_prior_anchor_loss:
-            prior_anchor_losses = F.mse_loss(boxes_offset_xy,
-                                             torch.zeros_like(boxes_offset_xy).to(boxes_offset_xy) + 0.5) + \
-                                  F.mse_loss(boxes_offset_wh, torch.zeros_like(boxes_offset_wh).to(boxes_offset_wh))
+            prior_anchor_losses = F.mse_loss(boxes_offset_wh, boxes_offset_wh.new_zeros(boxes_offset_wh.shape)) + \
+                                  F.mse_loss(boxes_offset_xy, boxes_offset_xy.new_zeros(boxes_offset_xy.shape) + 0.5)
 
         x_grid = torch.arange(W).repeat(H, 1)
         y_grid = torch.arange(H).unsqueeze(1).repeat(1, W)
@@ -274,44 +268,6 @@ class YOLOv2Postprocess(nn.Module):
         proposed_boxes_xywh = torch.cat((proposed_boxes_xy, proposed_boxes_wh), dim = -1)
 
         return proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, prior_anchor_losses
-
-    @staticmethod
-    def bboxes_transform(boxes_xywh, image_sizes):
-        """
-        Args:
-            boxes_xywh (Tensor): shape of [N, H, W, 5, 4]
-            image_sizes (List[Tuple[height, width]])
-
-        Returns:
-            boxes_xyxy (Tensor): shape of [N, H, W, 5, 4]
-        """
-        boxes_xyxy = boxes_xywh.new(boxes_xywh.shape).zero_()
-        boxes_xyxy[..., 0] = boxes_xywh[..., 0] - boxes_xywh[..., 2] * 0.5
-        boxes_xyxy[..., 1] = boxes_xywh[..., 1] - boxes_xywh[..., 3] * 0.5
-        boxes_xyxy[..., 2] = boxes_xywh[..., 0] + boxes_xywh[..., 2] * 0.5
-        boxes_xyxy[..., 3] = boxes_xywh[..., 1] + boxes_xywh[..., 3] * 0.5
-
-        for i in range(len(image_sizes)):
-            boxes_xyxy[i] = detection_utils.clip_boxes_to_image(boxes_xyxy[i], image_sizes[i])
-
-        return boxes_xyxy
-
-    @staticmethod
-    def bboxes_transform_to_xywh(boxes_xyxy):
-        """
-        Args:
-            boxes_xyxy (Tensor): shape of [M, 4]
-
-        Returns:
-            boxes_xywh (Tensor): shape of [M, 4]
-        """
-        boxes_xywh = boxes_xyxy.new(boxes_xyxy.shape).zero_()
-        boxes_xywh[..., 0] = (boxes_xyxy[..., 2] + boxes_xyxy[..., 0]) * 0.5
-        boxes_xywh[..., 1] = (boxes_xyxy[..., 3] + boxes_xyxy[..., 1]) * 0.5
-        boxes_xywh[..., 2] = boxes_xyxy[..., 2] - boxes_xyxy[..., 0]
-        boxes_xywh[..., 3] = boxes_xyxy[..., 3] - boxes_xyxy[..., 1]
-
-        return boxes_xywh
 
     def filter_proposals(self, boxes_classes, boxes_location, boxes_score):
         cls, loc, score = [], [], []
@@ -346,16 +302,6 @@ class YOLOv2Postprocess(nn.Module):
                 score.append(boxes_score_list[i])
 
         return label_list, loc, score
-
-    @staticmethod
-    def check_targets(targets):
-        assert targets is not None
-        assert all("boxes" in t for t in targets)
-        assert all("labels" in t for t in targets)
-        for t in targets:
-            assert t["boxes"].dtype.is_floating_point, 'target boxes must of float type'
-            assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
-            assert len(t["boxes"]) == len(t["labels"]), "the length of boxes do not match the length of labels"
 
     def comupute_loss(self, proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score,
                       targets, image_sizes):
@@ -399,65 +345,133 @@ class YOLOv2Postprocess(nn.Module):
         proposed_boxes_loc = proposed_boxes_loc / self.size_divisible
 
         for i in range(len(targets)):
-            target = targets[i]
+            t_boxes = targets[i]['boxes']
+            t_labels = targets[i]['labels']
             image_size = image_sizes[i]
-            p_boxes = proposed_boxes_xyxy[i]
             p_boxes_cls = proposed_boxes_classes[i]
             p_boxes_loc = proposed_boxes_loc[i]
             p_boxes_score = proposed_boxes_score[i]
 
-            # 计算各个 预测框 与所有gt的iou, 取最大值
-            all_pred_box_iou = torch.zeros(list(p_boxes.shape[:-1]) + [target['boxes'].shape[0]]).to(
-                target['boxes'])  # [H, W, 5, T]
-            for t in range(len(target['boxes'])):
-                t_box = target['boxes'][t]  # (x0, y0, x1, y1)
+            # 计算 背景 损失
+            noobj_score_loss = self._compute_noobj_loss(proposed_boxes_xyxy[i], p_boxes_score, t_boxes)
 
-                xx0 = p_boxes[..., 0].clamp(min = t_box[0].item())  # [H, W, 5,]
-                yy0 = p_boxes[..., 1].clamp(min = t_box[1].item())
-                xx1 = p_boxes[..., 2].clamp(max = t_box[2].item())
-                yy1 = p_boxes[..., 3].clamp(max = t_box[3].item())
-                overlap = (xx1 - xx0).clamp(min = 0) * (yy1 - yy0).clamp(min = 0)  # [H, W, 5,]
-                pred_area = (p_boxes[..., 2] - p_boxes[..., 0]) * (p_boxes[..., 3] - p_boxes[..., 1])
-                t_box_area = (t_box[2] - t_box[0]) * (t_box[3] - t_box[1])
-
-                all_pred_box_iou[..., t] = overlap / (pred_area + t_box_area - overlap)  # [H, W, 5,]
-
-            # 每个 预测框 的max_iou小于0.6的，记为背景bg，计算noobj loss
-            noobj_mask = all_pred_box_iou.max(dim = -1)[0] < 0.6
-            noobj_score_losses += noobject_scale * F.mse_loss(p_boxes_score[noobj_mask],
-                                                              torch.zeros_like(p_boxes_score[noobj_mask]))
-
-            t_boxes = self.bboxes_transform_to_xywh(target['boxes'])
+            # target transform to xywh
+            t_boxes = self.bboxes_transform_to_xywh(t_boxes)
             coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1) / (image_size[0] * image_size[1])  # [t_boxes.shape[0],]
             t_boxes = t_boxes / self.size_divisible
 
             # 得到每个gt落在哪个cell
             t_box_cell_idx = t_boxes[:, :2].long()  # [t_boxes.shape[0], 2]
-            # 计算这个gt与哪个原始(先验)anchor的iou最大
-            prior_anchor_iou = torch.zeros((t_boxes.shape[0], len(self.anchors))).to(t_boxes)
-            for a in range(len(self.anchors)):
-                anchor = t_boxes.new(self.anchors[a]) / self.size_divisible  # shape of (2,)
-                overlap = torch.min(t_boxes[:, 2], anchor[0]) * torch.min(t_boxes[:, 3], anchor[1])
-                prior_anchor_iou[:, a] = overlap / (t_boxes[:, 2:].prod(dim = -1) + anchor.prod(dim = -1) - overlap)
             # 得到与每个gt匹配的anchor的idx
-            t_box_correspond_anchor_idx = prior_anchor_iou.argmax(dim = -1).reshape(-1, 1).long()  # [t_boxes.shape[0],]
+            t_box_correspond_anchor_idx = self._get_matched_anchor_idx(t_boxes)
             # 取与gt匹配的原始anchor对应的预测框
             correspond_box_idx = torch.cat((t_box_cell_idx, t_box_correspond_anchor_idx), dim = -1).t().tolist()
-            cor_box_cls = p_boxes_cls[correspond_box_idx]  # [t_boxes.shape[0], 20]
-            cor_box_loc = p_boxes_loc[correspond_box_idx]  # [t_boxes.shape[0],4]
-            cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
-
-            # 计算其coord loss, class loss 和 iou_score loss
-            class_losses += class_scale * F.cross_entropy(cor_box_cls, target['labels'])
-            obj_score_losses += object_scale * F.mse_loss(cor_box_score, torch.ones_like(cor_box_score))
-            coord_losses += coord_scale * (F.mse_loss(cor_box_loc[:, :2], t_boxes[:, :2]) +
-                                           F.mse_loss(cor_box_loc[:, 2:].log(), t_boxes[:, 2:].log()))
+            # 计算 目标 损失
+            class_loss, coord_loss, obj_score_loss = self._compute_obj_loss(t_boxes, t_labels, correspond_box_idx,
+                                                                            p_boxes_cls, p_boxes_loc, p_boxes_score)
+            noobj_score_losses += noobject_scale * noobj_score_loss
+            class_losses += class_scale * class_loss
+            coord_losses += coord_scale * coord_loss
+            obj_score_losses += object_scale * obj_score_loss
 
         losses = dict(class_losses = class_losses,
                       coord_losses = coord_losses,
                       obj_score_losses = obj_score_losses,
                       noobj_score_losses = noobj_score_losses)
         return losses
+
+    @staticmethod
+    def _compute_noobj_loss(p_boxes, p_boxes_score, t_boxes):
+        # 计算各个 预测框 与所有gt的iou, 取最大值
+        all_pred_box_iou = torch.zeros(list(p_boxes.shape[:-1]) + [t_boxes.shape[0]]).to(t_boxes)  # [H, W, 5, T]
+        for t in range(len(t_boxes)):
+            t_box = t_boxes[t]  # (x0, y0, x1, y1)
+
+            xx0 = p_boxes[..., 0].clamp(min = t_box[0].item())  # [H, W, 5,]
+            yy0 = p_boxes[..., 1].clamp(min = t_box[1].item())
+            xx1 = p_boxes[..., 2].clamp(max = t_box[2].item())
+            yy1 = p_boxes[..., 3].clamp(max = t_box[3].item())
+            overlap = (xx1 - xx0).clamp(min = 0) * (yy1 - yy0).clamp(min = 0)  # [H, W, 5,]
+            pred_area = (p_boxes[..., 2] - p_boxes[..., 0]) * (p_boxes[..., 3] - p_boxes[..., 1])
+            t_box_area = (t_box[2] - t_box[0]) * (t_box[3] - t_box[1])
+
+            all_pred_box_iou[..., t] = overlap / (pred_area + t_box_area - overlap)  # [H, W, 5,]
+        # 每个 预测框 的max_iou小于0.6的，记为背景bg，计算noobj loss
+        noobj_mask = all_pred_box_iou.max(dim = -1)[0] < 0.6
+        noobj_score_loss = F.mse_loss(p_boxes_score[noobj_mask],
+                                      torch.zeros_like(p_boxes_score[noobj_mask]))
+        return noobj_score_loss
+
+    @staticmethod
+    def _compute_obj_loss(t_boxes, t_labels, correspond_box_idx, p_boxes_cls, p_boxes_loc, p_boxes_score):
+        cor_box_cls = p_boxes_cls[correspond_box_idx]  # [t_boxes.shape[0], 20]
+        cor_box_loc = p_boxes_loc[correspond_box_idx]  # [t_boxes.shape[0],4]
+        cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
+        # 计算其coord loss, class loss 和 iou_score loss
+        class_loss = F.cross_entropy(cor_box_cls, t_labels)
+        coord_loss = (F.mse_loss(cor_box_loc[:, :2], t_boxes[:, :2]) +
+                      F.mse_loss(cor_box_loc[:, 2:].log(), t_boxes[:, 2:].log()))
+        obj_score_loss = F.mse_loss(cor_box_score, torch.ones_like(cor_box_score))
+
+        return class_loss, coord_loss, obj_score_loss
+
+    def _get_matched_anchor_idx(self, t_boxes):
+        # 计算这个gt与哪个原始(先验)anchor的iou最大
+        prior_anchor_iou = torch.zeros((t_boxes.shape[0], len(self.anchors))).to(t_boxes)
+        for a in range(len(self.anchors)):
+            anchor = t_boxes.new(self.anchors[a]) / self.size_divisible  # shape of (2,)
+            overlap = torch.min(t_boxes[:, 2], anchor[0]) * torch.min(t_boxes[:, 3], anchor[1])
+            prior_anchor_iou[:, a] = overlap / (t_boxes[:, 2:].prod(dim = -1) + anchor.prod(dim = -1) - overlap)
+        # 返回与每个gt匹配的anchor的idx
+        return prior_anchor_iou.argmax(dim = -1).reshape(-1, 1).long()  # [t_boxes.shape[0],]
+
+    @staticmethod
+    def bboxes_transform(boxes_xywh, image_sizes):
+        """
+        Args:
+            boxes_xywh (Tensor): shape of [N, H, W, 5, 4]
+            image_sizes (List[Tuple[height, width]])
+
+        Returns:
+            boxes_xyxy (Tensor): shape of [N, H, W, 5, 4]
+        """
+        boxes_xyxy = boxes_xywh.new(boxes_xywh.shape).zero_()
+        boxes_xyxy[..., 0] = boxes_xywh[..., 0] - boxes_xywh[..., 2] * 0.5
+        boxes_xyxy[..., 1] = boxes_xywh[..., 1] - boxes_xywh[..., 3] * 0.5
+        boxes_xyxy[..., 2] = boxes_xywh[..., 0] + boxes_xywh[..., 2] * 0.5
+        boxes_xyxy[..., 3] = boxes_xywh[..., 1] + boxes_xywh[..., 3] * 0.5
+
+        for i in range(len(image_sizes)):
+            boxes_xyxy[i] = detection_utils.clip_boxes_to_image(boxes_xyxy[i], image_sizes[i])
+
+        return boxes_xyxy
+
+    @staticmethod
+    def bboxes_transform_to_xywh(boxes_xyxy):
+        """
+        Args:
+            boxes_xyxy (Tensor): shape of [M, 4]
+
+        Returns:
+            boxes_xywh (Tensor): shape of [M, 4]
+        """
+        boxes_xywh = boxes_xyxy.new(boxes_xyxy.shape).zero_()
+        boxes_xywh[..., 0] = (boxes_xyxy[..., 2] + boxes_xyxy[..., 0]) * 0.5
+        boxes_xywh[..., 1] = (boxes_xyxy[..., 3] + boxes_xyxy[..., 1]) * 0.5
+        boxes_xywh[..., 2] = boxes_xyxy[..., 2] - boxes_xyxy[..., 0]
+        boxes_xywh[..., 3] = boxes_xyxy[..., 3] - boxes_xyxy[..., 1]
+
+        return boxes_xywh
+
+    @staticmethod
+    def check_targets(targets):
+        assert targets is not None
+        assert all("boxes" in t for t in targets)
+        assert all("labels" in t for t in targets)
+        for t in targets:
+            assert t["boxes"].dtype.is_floating_point, 'target boxes must of float type'
+            assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
+            assert len(t["boxes"]) == len(t["labels"]), "the length of boxes do not match the length of labels"
 
 
 def yolo_v2_darknet19(num_classes, **kwargs):

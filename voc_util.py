@@ -223,8 +223,16 @@ class VOCTransformRandomCrop(object):
         center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
         center_y = target['boxes'][:, (1, 3)].mean(dim = -1)
 
-        for _ in range(20):
-            i, j, h, w = self.get_params(img, self.size)
+        for it in range(20):
+            if it < 10:
+                i, j, h, w = self.get_params(img, self.size)
+            else:
+                sel_idx = random.randint(0, center_x.shape[0] - 1)
+                x, y = center_x[sel_idx].item(), center_y[sel_idx].item()
+                i = random.randint(max(0, int(y) - self.size[0]), min(int(y), img.size[1] - self.size[0]))
+                j = random.randint(max(0, int(x) - self.size[1]), min(int(x), img.size[0] - self.size[1]))
+                h, w = self.size
+
             remain_obj_idx = (center_x > j) * (center_x < j + w) * (center_y > i) * (center_y < i + h)
             if remain_obj_idx.sum() > 0:
                 img = F.crop(img, i, j, h, w)
@@ -240,7 +248,12 @@ class VOCTransformRandomCrop(object):
 
                 return img, target
 
-        raise ValueError("`size` is too small, need a bigger crop `size`")
+        w_ratio, h_ratio = self.size[1] / img.size[0], self.size[0] / img.size[1]
+        img = F.resize(img, self.size)
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
+
+        return img, target
 
 
 class VOCTargetTransform(object):

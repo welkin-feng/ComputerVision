@@ -307,7 +307,7 @@ def voc_collate(batch):
         #     out = elem.new(storage)
         return torch.stack(batch, 0, out = out)
     elif isinstance(elem, float):
-        return torch.tensor(batch, dtype = torch.float64)
+        return torch.tensor(batch, dtype = torch.float)
     elif isinstance(elem, dict):
         return VOCTarget(batch)
     elif isinstance(elem, (tuple, list)):  # namedtuple
@@ -346,7 +346,7 @@ def get_data_loader(transforms, config, train_mode = True):
     return data_loader
 
 
-def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = torch.arange(0, 1, 0.1),
+def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = tuple(i / 10 for i in range(10)),
                  iou_thresh = 0.5):
     """
     calculate all p-r pairs among different score_thresh for one class of one image.
@@ -378,7 +378,7 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
             recall.append(0)
             precision.append(0)
             continue
-        ious = torch.zeros((len(gt_boxes), len(pb))).to(pb)
+        ious = pb.new_zeros((len(gt_boxes), len(pb)))
         for i in range(len(gt_boxes)):
             gb = gt_boxes[i]
             area_pb = (pb[:, 2] - pb[:, 0]) * (pb[:, 3] - pb[:, 1])

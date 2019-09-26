@@ -372,12 +372,15 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
 
     recall = []
     precision = []
+    # 对于不同score阈值，计算相应的 p-r 值
     for s in score_range:
         pb = pred_boxes[pred_scores > s]
+        # 若在该score阈值下无对应的boxes，则 p-r 都为0
         if pb.numel() == 0:
             recall.append(0)
             precision.append(0)
             continue
+        # 否则计算所有预测框与gt之间的iou
         ious = pb.new_zeros((len(gt_boxes), len(pb)))
         for i in range(len(gt_boxes)):
             gb = gt_boxes[i]
@@ -389,14 +392,15 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
             yy2 = pb[:, 3].clamp(max = gb[3].item())
             inter = (xx2 - xx1).clamp(min = 0) * (yy2 - yy1).clamp(min = 0)  # [N-1,]
             ious[i] = inter / (area_pb + area_gb - inter)
-
+        # 每个预测框的最大iou所对应的gt记为其匹配的gt
         max_ious, max_ious_idx = ious.max(dim = 0)
 
-        # 去掉 max_iou 属于 difficult 目标的预测框
-        not_difficult_idx = torch.where(gt_difficult != 0)[0]
-        if not_difficult_idx.numel() == 0:
+        not_difficult = gt_difficult == 0
+        if not_difficult.sum() == 0:
             continue
-        pb_mask = (max_ious == ious[not_difficult_idx].max(dim = 0)[0])
+        # 保留 max_iou 中属于 非difficult 目标的预测框，即应该去掉与 difficult gt 相匹配的预测框，不参与p-r计算
+        # 如果去掉与 difficult gt 对应的iou分数后，候选框的最大iou依然没有发生改变，则可认为此候选框不与difficult gt相匹配，应该保留
+        pb_mask = (ious[not_difficult].max(dim = 0)[0] == max_ious)
         max_ious, max_ious_idx = max_ious[pb_mask], max_ious_idx[pb_mask]
         if max_ious_idx.numel() == 0:
             recall.append(0)
@@ -404,7 +408,7 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
             continue
 
         tp = max_ious_idx[max_ious > iou_thresh].unique().numel()
-        recall.append(tp / not_difficult_idx.numel())
+        recall.append(tp / not_difficult.sum())
         precision.append(tp / max_ious_idx.numel())
 
     return recall, precision

@@ -374,10 +374,15 @@ class DetectionTrainer(Trainer):
                                                   vision.StandardTransform(img_trans, None)])
             return trans
         else:
-            return vision.StandardTransform(transforms.Compose([transforms.RandomCrop(size = 320, pad_if_needed = True),
-                                                                transforms.ToTensor(),
-                                                                transforms.Normalize([0.485, 0.456, 0.406],
-                                                                                     [0.229, 0.224, 0.225])]))
+            size = 320
+            img_trans = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+            target_trans = voc_util.VOCTargetTransform()
+            trans = voc_util.VOCTransformCompose([vision.StandardTransform(None, target_trans),
+                                                  voc_util.VOCTransformResize(size = (size, size),
+                                                                              scale_with_padding = True),
+                                                  vision.StandardTransform(img_trans, None)])
+            return trans
 
     def _get_dataloader(self, transforms, train_mode = True):
         return voc_util.get_data_loader(transforms, self.config, train_mode)

@@ -319,7 +319,7 @@ class VOCDetection(torchvision.datasets.VOCDetection):
         if image_set != "test":
             super().__init__(root, year, image_set, download, transform, target_transform, transforms)
         else:
-            super().__init__(root, year, 'val', download, transform, target_transform, transforms)
+            super().__init__(root, year, 'test', download, transform, target_transform, transforms)
             self.image_set = image_set
             DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012'},
                                  '2007': {'base_dir': 'VOCdevkit/VOC2007'}}

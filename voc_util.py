@@ -16,9 +16,9 @@ import os
 import random
 import numpy as np
 import torch
+import torchvision
 import torchvision.transforms.functional as F
 
-from torchvision.datasets import VOCDetection
 from torch.utils.data import DataLoader
 
 
@@ -49,23 +49,35 @@ class VOCTransformFlip(object):
 
 
 class VOCTransformResize(object):
-    def __init__(self, size):
+    def __init__(self, size, scale_with_padding = False):
         """
         Args:
             size (sequence or int): Desired output size. If size is a sequence like (h, w), output size will be matched
                 to this. If size is an int, smaller edge of the image will be matched to this number.
                 i.e, if height > width, then image will be rescaled to (size * height / width, size)
+            scale_with_padding
         """
         assert isinstance(size, int) or (isinstance(size, (list, tuple)) and len(size) == 2)
         self.size = size
+        self.scale_with_padding = scale_with_padding
 
     def __call__(self, img, target):
         w, h = img.size
-        img = F.resize(img, self.size)
         if isinstance(self.size, int):
             w_ratio, h_ratio = self.size / min(w, h), self.size / min(w, h)
         else:
-            w_ratio, h_ratio = self.size[1] / w, self.size[0] / h
+            if w / h != self.size[1] / self.size[0] and self.scale_with_padding:
+                if w / h < self.size[1] / self.size[0]:
+                    pad = ((h * self.size[1] / self.size[0] - w) // 2, 0)
+                else:
+                    pad = (0, (w * self.size[0] / self.size[1] - h) // 2)
+                img = F.pad(img, pad)
+                target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + pad[0]
+                target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + pad[1]
+
+            w_ratio, h_ratio = self.size[1] / img.size[0], self.size[0] / img.size[1]
+
+        img = F.resize(img, self.size)
         target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
         target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
         return img, target
@@ -292,19 +304,47 @@ class VOCTarget(tuple):
                       'difficult': t['difficult'].to(*args, **kwargs)} for t in self)
 
 
+class VOCDetection(torchvision.datasets.VOCDetection):
+    def __init__(self,
+                 root,
+                 year = '2012',
+                 image_set = 'train',
+                 download = False,
+                 transform = None,
+                 target_transform = None,
+                 transforms = None):
+        valid_values = ("train", "trainval", "val", "test")
+        if image_set not in valid_values:
+            raise ValueError(f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
+        if image_set != "test":
+            super().__init__(root, year, image_set, download, transform, target_transform, transforms)
+        else:
+            super().__init__(root, year, 'val', download, transform, target_transform, transforms)
+            self.image_set = image_set
+            DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012'},
+                                 '2007': {'base_dir': 'VOCdevkit/VOC2007'}}
+            base_dir = DATASET_YEAR_DICT[year]['base_dir']
+            voc_root = os.path.join(self.root, base_dir)
+            image_dir = os.path.join(voc_root, 'JPEGImages')
+            annotation_dir = os.path.join(voc_root, 'Annotations')
+
+            splits_dir = os.path.join(voc_root, 'ImageSets/Main')
+            split_f = os.path.join(splits_dir, image_set.rstrip('\n') + '.txt')
+
+            with open(os.path.join(split_f), "r") as f:
+                file_names = [x.strip() for x in f.readlines()]
+
+            self.images = [os.path.join(image_dir, x + ".jpg") for x in file_names]
+            self.annotations = [os.path.join(annotation_dir, x + ".xml") for x in file_names]
+            assert (len(self.images) == len(self.annotations))
+
+
 def voc_collate(batch):
     r"""Puts each data field into a tensor with outer dimension batch size"""
-
     elem = batch[0]
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):
         out = None
-        # if worker.get_worker_info() is not None:
-        #     # If we're in a background process, concatenate directly into a
-        #     # shared memory tensor to avoid an extra copy
-        #     numel = sum([x.numel() for x in batch])
-        #     storage = elem.storage()._new_shared(numel)
-        #     out = elem.new(storage)
         return torch.stack(batch, 0, out = out)
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype = torch.float)

@@ -376,10 +376,10 @@ class YOLOv2Postprocess(nn.Module):
             coord_losses += coord_loss
             obj_score_losses += obj_score_loss
 
-        losses = dict(class_losses = class_losses,
-                      coord_losses = coord_losses,
-                      obj_score_losses = obj_score_losses,
-                      noobj_score_losses = noobj_score_losses)
+        losses = dict(class_losses = class_losses/len(targets),
+                      coord_losses = coord_losses/len(targets),
+                      obj_score_losses = obj_score_losses/len(targets),
+                      noobj_score_losses = noobj_score_losses/len(targets))
         return losses
 
     @staticmethod

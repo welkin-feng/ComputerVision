@@ -225,12 +225,12 @@ class VOCTransformRandomCrop(object):
 
         # pad the width if needed
         if self.pad_if_needed and img.size[0] < self.size[1]:
-            img = F.pad(img, (self.size[1] - img.size[0], 0), self.fill, self.padding_mode)
             target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + (self.size[1] - img.size[0])
+            img = F.pad(img, (self.size[1] - img.size[0], 0), self.fill, self.padding_mode)
         # pad the height if needed
         if self.pad_if_needed and img.size[1] < self.size[0]:
-            img = F.pad(img, (0, self.size[0] - img.size[1]), self.fill, self.padding_mode)
             target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + (self.size[0] - img.size[1])
+            img = F.pad(img, (0, self.size[0] - img.size[1]), self.fill, self.padding_mode)
 
         center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
         center_y = target['boxes'][:, (1, 3)].mean(dim = -1)

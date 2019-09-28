@@ -68,9 +68,9 @@ class VOCTransformResize(object):
         else:
             if w / h != self.size[1] / self.size[0] and self.scale_with_padding:
                 if w / h < self.size[1] / self.size[0]:
-                    pad = ((h * self.size[1] / self.size[0] - w) // 2, 0)
+                    pad = (int((h * self.size[1] / self.size[0] - w) / 2), 0)
                 else:
-                    pad = (0, (w * self.size[0] / self.size[1] - h) // 2)
+                    pad = (0, int((w * self.size[0] / self.size[1] - h) / 2))
                 img = F.pad(img, pad)
                 target['boxes'][:, (0, 2)] = target['boxes'][:, (0, 2)] + pad[0]
                 target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + pad[1]

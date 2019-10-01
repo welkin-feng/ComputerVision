@@ -345,13 +345,13 @@ class DetectionTrainer(Trainer):
         super().__init__(work_path, resume, config_dict)
 
     def train_step(self, train_loader):
-        self.AP_list = []
+        self.all_cls_pr = [dict(recall = [], precision = []) for _ in range(self.config.num_classes)]
         if self.epoch % 5 == 0:
             train_loader = self._get_dataloader(self._get_transforms(train_mode = True), train_mode = True)
         return super().train_step(train_loader)
 
     def test(self, test_loader):
-        self.AP_list = []
+        self.all_cls_pr = [dict(recall = [], precision = []) for _ in range(self.config.num_classes)]
         return super().test(test_loader)
 
     def _get_transforms(self, train_mode = True):
@@ -410,7 +410,6 @@ class DetectionTrainer(Trainer):
         Returns:
             mAP
         """
-        all_cls_pr = [dict(recall = [], precision = []) for _ in range(self.config.num_classes)]
         for idx, (pred, gt) in enumerate(zip(outputs, targets)):
             pred_boxes = pred['boxes']
             pred_labels = pred['labels']
@@ -427,11 +426,11 @@ class DetectionTrainer(Trainer):
                 gt_mask = gt_labels == i
                 recall, precision = voc_util.calculate_pr(pred_boxes[pred_mask], pred_scores[pred_mask],
                                                           gt_boxes[gt_mask], gt_difficult[gt_mask])
-                all_cls_pr[i]['recall'].extend(recall)
-                all_cls_pr[i]['precision'].extend(precision)
+                self.all_cls_pr[i]['recall'].extend(recall)
+                self.all_cls_pr[i]['precision'].extend(precision)
 
-        all_cls_AP = [voc_util.voc_ap(pr['recall'], pr['precision']) for pr in all_cls_pr]
-        mAP = sum(all_cls_AP) / len(all_cls_pr)
+        all_cls_AP = [voc_util.voc_ap(pr['recall'], pr['precision']) for pr in self.all_cls_pr]
+        mAP = sum(all_cls_AP) / len(self.all_cls_pr)
 
         return mAP
 

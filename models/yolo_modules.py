@@ -77,8 +77,8 @@ class GeneralizedYOLO(torch.nn.Module):
             detection['boxes'] = detection['boxes'].long()
             detection['scores'] = detection['scores'].view(-1)
         posttrans_time = time.time() - start - trans_time - backbone_time - postprocess_time
-        print(f"  -- model transform time: {trans_time:.2f}, backbone time: {backbone_time:.2f}, "
-              f"postprocess time: {postprocess_time:.2f}, post transform time: {posttrans_time:.2f}")
+        # print(f"  -- model transform time: {trans_time:.2f}, backbone time: {backbone_time:.2f}, "
+        #       f"postprocess time: {postprocess_time:.2f}, post transform time: {posttrans_time:.2f}")
 
         return detections, detector_losses
 

@@ -241,11 +241,11 @@ class YOLOv2Postprocess(nn.Module):
                      labels = pred_boxes_label[i])
             )
         nms_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time - filter_proposals_time
-        print(f"  - get_proposed_boxes_time: {get_proposed_boxes_time:.2f}, "
-              f"comupute_loss_time: {comupute_loss_time:.2f}, "
-              f"bboxes_transform_time: {bboxes_transform_time:.2f}, "
-              f"filter_proposals_time: {filter_proposals_time:.2f}, "
-              f"nms_time: {nms_time:.2f}")
+        # print(f"  - get_proposed_boxes_time: {get_proposed_boxes_time:.2f}, "
+        #       f"comupute_loss_time: {comupute_loss_time:.2f}, "
+        #       f"bboxes_transform_time: {bboxes_transform_time:.2f}, "
+        #       f"filter_proposals_time: {filter_proposals_time:.2f}, "
+        #       f"nms_time: {nms_time:.2f}")
 
         return result, losses
 

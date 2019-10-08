@@ -211,7 +211,7 @@ class YOLOv2Postprocess(nn.Module):
             boxes_offset, get_prior_anchor_loss)
         get_proposed_boxes_time = time.time() - start_time
 
-        result, losses = [], 0
+        result, losses = [], torch.scalar_tensor(0.)
         if self.training:
             self.check_targets(targets)
             assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"

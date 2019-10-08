@@ -175,13 +175,14 @@ class Trainer(object):
             train_loss = _train_loss / (batch_index + 1)
 
             # calculate acc
-            train_acc = self._calculate_acc(outputs, targets, train_mode = True)
+            self._calculate_acc(outputs, targets, train_mode = True)
             eval_time = time.time() - batch_start - forward_time - backward_time
             print(f"  --- model forward time: {forward_time:.2f}, backward time: {backward_time:.2f}, "
                   f"calculate acc time: {eval_time:.2f} | total batch time: {time.time()-batch_start:.2f}")
 
             # log
             if (batch_index + 1) % self.config.print_interval == 0 or (batch_index + 1) == len(train_loader):
+                train_acc = self._get_acc()
                 self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
                     batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
 
@@ -208,8 +209,9 @@ class Trainer(object):
                 # calculate loss and acc
                 _test_loss += loss.item()
                 test_loss = _test_loss / (batch_index + 1)
-                test_acc = self._calculate_acc(outputs, targets, train_mode = False)
+                self._calculate_acc(outputs, targets, train_mode = False)
 
+        test_acc = self._get_acc()
         self.logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
         self.writer.add_scalar('test_loss', test_loss, self.epoch)
         self.writer.add_scalar('test_acc', test_acc, self.epoch)
@@ -274,7 +276,11 @@ class Trainer(object):
             outputs:
             targets:
             train_mode:
+        """
+        raise NotImplementedError()
 
+    def _get_acc(self):
+        """
         Returns:
             acc
         """
@@ -294,11 +300,13 @@ class ClassificationTrainer(Trainer):
     def train_step(self, train_loader):
         self.correct = 0
         self.total = 0
+        self._acc = 0
         return super().train_step(train_loader)
 
     def test(self, test_loader):
         self.correct = 0
         self.total = 0
+        self._acc = 0
         return super().test(test_loader)
 
     def _get_transforms(self, train_mode = True):
@@ -335,14 +343,16 @@ class ClassificationTrainer(Trainer):
 
     def _calculate_acc(self, outputs, targets, train_mode = True):
         if self.config.mixup:
-            acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
-                                                                      self.total, train_mode = train_mode,
-                                                                      lam = self.lam, targets_a = self.targets_a,
-                                                                      targets_b = self.targets_b)
+            self._acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
+                                                                            self.total, train_mode = train_mode,
+                                                                            lam = self.lam, targets_a = self.targets_a,
+                                                                            targets_b = self.targets_b)
         else:
-            acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
-                                                                      self.total, train_mode = train_mode)
-        return acc
+            self._acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
+                                                                            self.total, train_mode = train_mode)
+
+    def _get_acc(self):
+        return self._acc
 
 
 class DetectionTrainer(Trainer):
@@ -435,9 +445,9 @@ class DetectionTrainer(Trainer):
                 self.all_cls_pr[i]['recall'].extend(recall)
                 self.all_cls_pr[i]['precision'].extend(precision)
 
+    def _get_acc(self):
         all_cls_AP = [voc_util.voc_ap(pr['recall'], pr['precision']) for pr in self.all_cls_pr]
         mAP = sum(all_cls_AP) / len(self.all_cls_pr)
-
         return mAP
 
 

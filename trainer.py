@@ -186,8 +186,7 @@ class Trainer(object):
                 self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
                     batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
 
-        end = time.time()
-        self.logger.info("   == cost time: {:.4f}s".format(end - start))
+        self.logger.info("   == cost time: {:.4f}s".format(time.time() - start))
         self.writer.add_scalar('learning_rate', self.current_lr, self.epoch)
         self.writer.add_scalar('train_loss', train_loss, self.epoch)
         self.writer.add_scalar('train_acc', train_acc, self.epoch)
@@ -195,6 +194,7 @@ class Trainer(object):
         return train_loss, train_acc
 
     def test(self, test_loader):
+        start = time.time()
         self.net.eval()
         _test_loss, test_loss, test_acc = 0, 0, 0
 
@@ -213,6 +213,7 @@ class Trainer(object):
 
         test_acc = self._get_acc()
         self.logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
+        self.logger.info("   == cost time: {:.4f}s".format(time.time() - start))
         self.writer.add_scalar('test_loss', test_loss, self.epoch)
         self.writer.add_scalar('test_acc', test_acc, self.epoch)
 

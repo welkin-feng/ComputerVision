@@ -177,7 +177,7 @@ class Trainer(object):
             # calculate acc
             train_acc = self._calculate_acc(outputs, targets, train_mode = True)
             eval_time = time.time() - batch_start - forward_time - backward_time
-            print(f"  -- model forward time: {forward_time:.2f}, backward time: {backward_time:.2f}, "
+            print(f"  --- model forward time: {forward_time:.2f}, backward time: {backward_time:.2f}, "
                   f"calculate acc time: {eval_time:.2f} | total batch time: {time.time()-batch_start:.2f}")
 
             # log

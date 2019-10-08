@@ -14,6 +14,7 @@ __date__ = '2019/9/3 13:02'
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 from . import detection_utils
 from .util_modules import conv_bn_activation, conv_bn_relu
@@ -205,8 +206,10 @@ class YOLOv2Postprocess(nn.Module):
             losses (Dict[Tensor]): the losses for the model during training. During
                 testing, it is an empty dict.
         """
+        start_time = time.time()
         proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
             boxes_offset, get_prior_anchor_loss)
+        get_proposed_boxes_time = time.time() - start_time
 
         result, losses = [], 0
         if self.training:
@@ -219,13 +222,18 @@ class YOLOv2Postprocess(nn.Module):
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
                      losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
+        comupute_loss_time = time.time() - start_time - get_proposed_boxes_time
+
         # transform xywh to xyxy
         proposed_boxes_loc = self.bboxes_transform(proposed_boxes_loc, image_sizes)
+        bboxes_transform_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time
         # filter
         cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_loc,
                                                                proposed_boxes_score)
+        filter_proposals_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time
         # nms
         pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
+        nms_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time - filter_proposals_time
         num_images = len(pred_boxes_loc)
         for i in range(num_images):
             result.append(
@@ -233,6 +241,11 @@ class YOLOv2Postprocess(nn.Module):
                      scores = pred_boxes_score[i],
                      labels = pred_boxes_label[i])
             )
+        print(f"  - get_proposed_boxes_time: {get_proposed_boxes_time:.2f}, "
+              f"comupute_loss_time: {comupute_loss_time:.2f}, "
+              f"bboxes_transform_time: {bboxes_transform_time:.2f}, "
+              f"filter_proposals_time: {filter_proposals_time:.2f}, "
+              f"nms_time: {nms_time:.2f}")
 
         return result, losses
 
@@ -376,10 +389,10 @@ class YOLOv2Postprocess(nn.Module):
             coord_losses += coord_loss
             obj_score_losses += obj_score_loss
 
-        losses = dict(class_losses = class_losses/len(targets),
-                      coord_losses = coord_losses/len(targets),
-                      obj_score_losses = obj_score_losses/len(targets),
-                      noobj_score_losses = noobj_score_losses/len(targets))
+        losses = dict(class_losses = class_losses / len(targets),
+                      coord_losses = coord_losses / len(targets),
+                      obj_score_losses = obj_score_losses / len(targets),
+                      noobj_score_losses = noobj_score_losses / len(targets))
         return losses
 
     @staticmethod

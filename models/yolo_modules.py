@@ -14,6 +14,7 @@ __date__ = '2019/9/5 13:48'
 import torch
 import random
 import math
+import time
 from .detection_utils import ImageList
 
 
@@ -54,23 +55,30 @@ class GeneralizedYOLO(torch.nn.Module):
             else:
                 assert len(targets) == len(images), "the length of `images` do not match the length of `targets`"
 
+        start = time.time()
         original_image_sizes = [img.shape[-2:] for img in images]
         if isinstance(images, torch.Tensor) and images.dim() == 4 and not self.use_transform:
             images = ImageList(images, original_image_sizes)
         else:
             self.use_transform = True
             images, targets = self.transform(images, targets)
+        trans_time = time.time() - start
         features = self.backbone(images.tensors)
         # boxes (Tensor): original boxes without filtering, [N, 7*7*30] in YOLOv1 and [N, 125, 13, 13] in YOLOv2
         proposed_boxes_bias = self.reg_net(features)
+        backbone_time = time.time() - start - trans_time
         #
         detections, detector_losses = self.postprocess(proposed_boxes_bias, images.image_sizes, targets, **kwargs)
+        postprocess_time = time.time() - start - trans_time - backbone_time
         if self.use_transform:
             detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
         for detection in detections:
             detection['boxes'] = detection['boxes'].long()
             detection['scores'] = detection['scores'].view(-1)
+        posttrans_time = time.time() - start - trans_time - backbone_time - postprocess_time
+        print(f"    -- model transform time: {trans_time:.2f}, backbone time: {backbone_time:.2f}, "
+              f"postprocess time: {postprocess_time:.2f}, post transform time: {posttrans_time:.2f}")
 
         return detections, detector_losses
 

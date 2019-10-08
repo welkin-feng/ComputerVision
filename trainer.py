@@ -155,10 +155,12 @@ class Trainer(object):
         self.logger.info(" === Epoch: [{}/{}] === ".format(self.epoch + 1, self.config.epochs))
 
         for batch_index, (inputs, targets) in enumerate(train_loader):
+            batch_start = time.time()
             # move tensor to GPU
             inputs, targets = inputs.to(self.device), targets.to(self.device)
 
             outputs, loss = self._get_model_outputs(inputs, targets, train_mode = True)
+            forward_time = time.time() - batch_start
 
             # zero the gradient buffers
             self.optimizer.zero_grad()
@@ -166,6 +168,7 @@ class Trainer(object):
             loss.backward()
             # update weight
             self.optimizer.step()
+            backward_time = time.time() - batch_start - forward_time
 
             # count the loss
             _train_loss += loss.item()
@@ -173,6 +176,9 @@ class Trainer(object):
 
             # calculate acc
             train_acc = self._calculate_acc(outputs, targets, train_mode = True)
+            eval_time = time.time() - batch_start - forward_time - backward_time
+            print(f"  -- model forward time: {forward_time:.2f}, backward time: {backward_time:.2f}, "
+                  f"calculate acc time: {eval_time:.2f} | total batch time: {time.time()-batch_start:.2f}")
 
             # log
             if (batch_index + 1) % self.config.print_interval == 0 or (batch_index + 1) == len(train_loader):

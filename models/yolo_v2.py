@@ -233,7 +233,6 @@ class YOLOv2Postprocess(nn.Module):
         filter_proposals_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time
         # nms
         pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
-        nms_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time - filter_proposals_time
         num_images = len(pred_boxes_loc)
         for i in range(num_images):
             result.append(
@@ -241,6 +240,7 @@ class YOLOv2Postprocess(nn.Module):
                      scores = pred_boxes_score[i],
                      labels = pred_boxes_label[i])
             )
+        nms_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time - filter_proposals_time
         print(f"  - get_proposed_boxes_time: {get_proposed_boxes_time:.2f}, "
               f"comupute_loss_time: {comupute_loss_time:.2f}, "
               f"bboxes_transform_time: {bboxes_transform_time:.2f}, "
@@ -304,11 +304,16 @@ class YOLOv2Postprocess(nn.Module):
                 # cls_probs = torch.softmax(boxes_cls_list[i], -1)
                 # labels = torch.argmax(cls_probs, dim = -1)
                 labels = torch.argmax(boxes_cls_list[i], dim = -1)
-                # non-maximum suppression, independently done per class
-                keep_mask = detection_utils.batched_nms(boxes_loc_list[i], boxes_score_list[i], labels, self.nms_thresh)
-                label_list.append(labels[keep_mask])
-                loc.append(boxes_loc_list[i][keep_mask])
-                score.append(boxes_score_list[i][keep_mask])
+                if self.training:
+                    label_list.append(labels)
+                    loc.append(boxes_loc_list[i])
+                    score.append(boxes_score_list[i])
+                else:
+                    # non-maximum suppression, independently done per class
+                    keep_mask = detection_utils.batched_nms(boxes_loc_list[i], boxes_score_list[i], labels, self.nms_thresh)
+                    label_list.append(labels[keep_mask])
+                    loc.append(boxes_loc_list[i][keep_mask])
+                    score.append(boxes_score_list[i][keep_mask])
             else:
                 label_list.append(boxes_cls_list[i].new([]))
                 loc.append(boxes_loc_list[i])

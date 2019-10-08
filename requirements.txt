@@ -1,7 +1,6 @@
 numpy
 pandas
 scipy
-jupyter
 matplotlib
 opencv-python
 torch==1.2.0
@@ -12,5 +11,6 @@ torchvision==0.4.0
 Pillow
 easydict
 PyYAML
+tensorboard
 tensorboardX
 fastai

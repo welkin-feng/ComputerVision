@@ -190,7 +190,7 @@ class YOLOv2Postprocess(nn.Module):
         self.box_iou_thresh = box_iou_thresh
         self.nms_thresh = nms_thresh
 
-    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False):
+    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False, **kwargs):
         """
         Args:
             boxes_offset (Tensor): shape [N, 7*7*30] in YOLOv1, [N, 13, 13, 125] in YOLOv2
@@ -216,9 +216,14 @@ class YOLOv2Postprocess(nn.Module):
             self.check_targets(targets)
             assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
 
+            noobject_scale = kwargs.get('noobject_scale', 1)
+            class_scale = kwargs.get('class_scale', 1)
+            object_scale = kwargs.get('object_scale', 5)
+            coord_scale = kwargs.get('coord_scale', None)
+            prior_scale = kwargs.get('prior_scale', 0.01)
+
             losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
-                                        image_sizes)
-            prior_scale = 0.01
+                                        image_sizes, noobject_scale, class_scale, object_scale, coord_scale)
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
                      losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
@@ -310,7 +315,8 @@ class YOLOv2Postprocess(nn.Module):
                     score.append(boxes_score_list[i])
                 else:
                     # non-maximum suppression, independently done per class
-                    keep_mask = detection_utils.batched_nms(boxes_loc_list[i], boxes_score_list[i], labels, self.nms_thresh)
+                    keep_mask = detection_utils.batched_nms(boxes_loc_list[i], boxes_score_list[i], labels,
+                                                            self.nms_thresh)
                     label_list.append(labels[keep_mask])
                     loc.append(boxes_loc_list[i][keep_mask])
                     score.append(boxes_score_list[i][keep_mask])
@@ -322,7 +328,7 @@ class YOLOv2Postprocess(nn.Module):
         return label_list, loc, score
 
     def comupute_loss(self, proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score,
-                      targets, image_sizes):
+                      targets, image_sizes, noobject_scale = 1, class_scale = 1, object_scale = 5, coord_scale = None):
         """
         for pred_box in all prediction box:
             if (max iou pred_box has with all truth box < threshold):
@@ -350,11 +356,6 @@ class YOLOv2Postprocess(nn.Module):
             losses (Dict[Tensor]): include `class_losses`, `coord_losses`, `obj_score_losses`,
                 `noobj_score_losses` and `prior_anchor_loss`.
         """
-        noobject_scale = 1
-        class_scale = 1
-        object_scale = 5
-        coord_scale = None
-
         class_losses, coord_losses, obj_score_losses, noobj_score_losses = 0, 0, 0, 0
 
         # transform xywh to xyxy
@@ -376,7 +377,8 @@ class YOLOv2Postprocess(nn.Module):
             # target transform to xywh
             t_boxes = self.bboxes_transform_to_xywh(t_boxes)
             # [t_boxes.shape[0], 1]
-            coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
+            if coord_scale is None:
+                coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
             t_boxes = t_boxes / self.size_divisible
 
             # 得到每个gt落在哪个cell

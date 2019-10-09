@@ -363,7 +363,7 @@ class DetectionTrainer(Trainer):
 
     def train_step(self, train_loader):
         self.all_cls_pr = [dict(recall = [], precision = []) for _ in range(self.config.num_classes)]
-        if self.epoch % 5 == 0:
+        if self.epoch % self.config.size_change_freq == 0:
             train_loader = self._get_dataloader(self._get_transforms(train_mode = True), train_mode = True)
         return super().train_step(train_loader)
 
@@ -372,12 +372,13 @@ class DetectionTrainer(Trainer):
         return super().test(test_loader)
 
     def _get_transforms(self, train_mode = True):
-        if train_mode:
-            size_list = (320, 352, 384, 416, 448, 480, 512, 544, 576, 608)
-            size = 320
-            if self.epoch % 5 == 0:
-                size = size_list[self.epoch // 5 % 10]
+        # size_list = (320, 352, 384, 416, 448, 480, 512, 544, 576, 608)
+        size_list = self.config.size_list
+        size = size_list[0]
+        if self.epoch % self.config.size_change_freq == 0:
+            size = size_list[self.epoch // 5 % len(size_list)]
 
+        if train_mode:
             img_trans = transforms.Compose([transforms.ColorJitter(),
                                             transforms.ToTensor(),
                                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
@@ -391,7 +392,6 @@ class DetectionTrainer(Trainer):
                                                   vision.StandardTransform(img_trans, None)])
             return trans
         else:
-            size = 320
             img_trans = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
             target_trans = voc_util.VOCTargetTransform()
@@ -406,10 +406,7 @@ class DetectionTrainer(Trainer):
 
     def _get_model_outputs(self, inputs, targets, train_mode = True):
         if train_mode:
-            if self.epoch < 10:
-                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True)
-            else:
-                outputs, loss = self.net(inputs, targets)
+            outputs, loss = self.net(inputs, targets)
         else:
             outputs, loss = self.net(inputs)
 
@@ -450,6 +447,28 @@ class DetectionTrainer(Trainer):
         all_cls_AP = [voc_util.voc_ap(pr['recall'], pr['precision']) for pr in self.all_cls_pr]
         mAP = sum(all_cls_AP) / len(self.all_cls_pr)
         return mAP
+
+
+class YOLOTrainer(DetectionTrainer):
+    def __init__(self, work_path, resume = False, config_dict = None):
+        super().__init__(work_path, resume, config_dict)
+
+    def _get_model_outputs(self, inputs, targets, train_mode = True):
+        if train_mode:
+            if self.epoch < 10:
+                kwargs = {'class_scale': 1, 'object_scale': 0, 'coord_scale': 0,
+                          'noobject_scale': 0, 'prior_scale': 0}
+                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = False, **kwargs)
+            elif self.epoch < 20:
+                kwargs = {'class_scale': 1, 'object_scale': 0, 'coord_scale': 0,
+                          'noobject_scale': 0, 'prior_scale': 0.01}
+                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True, **kwargs)
+            else:
+                outputs, loss = self.net(inputs, targets)
+        else:
+            outputs, loss = self.net(inputs)
+
+        return outputs, loss
 
 
 def parse_args():

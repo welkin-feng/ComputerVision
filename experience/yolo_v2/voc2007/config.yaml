@@ -9,15 +9,16 @@ ckpt_name: yolo_v2_resnet50
 data_path: ./data
 num_classes: 20
 dataset: voc2007
+size_list: [320,]
+size_change_freq: 160
 
 # training parameters
 use_gpu: True
-#input_size: 32
 epochs: 160
-batch_size: 128
-test_batch: 200
+batch_size: 32
+test_batch: 32
 eval_freq: 2
-print_interval: 100
+print_interval: 10
 workers: 4
 
 # multi classifiers used during training

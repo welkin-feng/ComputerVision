@@ -218,12 +218,12 @@ class YOLOv2Postprocess(nn.Module):
 
             noobject_scale = kwargs.get('noobject_scale', 1)
             class_scale = kwargs.get('class_scale', 1)
-            object_scale = kwargs.get('object_scale', 5)
             coord_scale = kwargs.get('coord_scale', None)
+            object_scale = kwargs.get('object_scale', 5)
             prior_scale = kwargs.get('prior_scale', 0.01)
 
             losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
-                                        image_sizes, noobject_scale, class_scale, object_scale, coord_scale)
+                                        image_sizes, noobject_scale, class_scale, coord_scale, object_scale)
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
                      losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
@@ -328,7 +328,7 @@ class YOLOv2Postprocess(nn.Module):
         return label_list, loc, score
 
     def comupute_loss(self, proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score,
-                      targets, image_sizes, noobject_scale = 1, class_scale = 1, object_scale = 5, coord_scale = None):
+                      targets, image_sizes, noobject_scale = 1, class_scale = 1, coord_scale = None, object_scale = 5):
         """
         for pred_box in all prediction box:
             if (max iou pred_box has with all truth box < threshold):
@@ -363,6 +363,8 @@ class YOLOv2Postprocess(nn.Module):
 
         proposed_boxes_loc = proposed_boxes_loc / self.size_divisible
 
+        cal_coord_scale = coord_scale is None
+
         for i in range(len(targets)):
             t_boxes = targets[i]['boxes']
             t_labels = targets[i]['labels']
@@ -377,7 +379,7 @@ class YOLOv2Postprocess(nn.Module):
             # target transform to xywh
             t_boxes = self.bboxes_transform_to_xywh(t_boxes)
             # [t_boxes.shape[0], 1]
-            if coord_scale is None:
+            if cal_coord_scale:
                 coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
             t_boxes = t_boxes / self.size_divisible
 

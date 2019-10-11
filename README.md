@@ -8,7 +8,9 @@
   - **(resnet)** [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
   - **(sppnet)** [Spatial Pyramid Pooling in Deep Convolutional Networks for Visual Recognition](https://arxiv.org/abs/1406.4729)
   - **(mobilenet_v1)** [MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications](https://arxiv.org/abs/1704.04861)
-  
+  - **(yolo_v1)** [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/abs/1506.02640)
+  - **(yolo_v2)** [YOLO9000: Better, Faster, Stronger](https://arxiv.org/abs/1612.08242)
+
 
 ## Requirements and Usage 
 
@@ -30,16 +32,16 @@ simply run the cmd for the training:
 
 ```bash
 ## 1 GPU for vgg
-CUDA_VISIBLE_DEVICES=0 python -u train_simple.py --work-path ./experiments/vgg/cifar10
+CUDA_VISIBLE_DEVICES=0 python -u train_classifier.py --work-path ./experiments/vgg/cifar10
 
 ## resume from ckpt
-CUDA_VISIBLE_DEVICES=0 python -u train_simple.py --work-path ./experiments/vgg/cifar10 --resume
+CUDA_VISIBLE_DEVICES=0 python -u train_classifier.py --work-path ./experiments/vgg/cifar10 --resume
 
 ## 2 GPUs for inception_v1
-CUDA_VISIBLE_DEVICES=0,1 python -u train_simple.py --work-path ./experiments/inception_v1/cifar10
+CUDA_VISIBLE_DEVICES=0,1 python -u train_classifier.py --work-path ./experiments/inception_v1/cifar10
 
-## 4 GPUs for resnet
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -u train_simple.py --work-path ./experiments/resnet/cifar10
+## 4 GPUs for yolo_v2
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -u train_detector.py --work-path ./experience/yolo_v2/voc2007
 ``` 
 
 We use yaml file ``config.yaml`` to save the parameters, check any files in `./experimets` for more details.  

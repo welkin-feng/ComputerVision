@@ -20,6 +20,7 @@ import torchvision
 import torchvision.transforms.functional as F
 
 from torch.utils.data import DataLoader
+from PIL import Image
 
 
 class VOCTransformCompose(object):
@@ -304,10 +305,67 @@ class VOCTarget(tuple):
                       'difficult': t['difficult'].to(*args, **kwargs)} for t in self)
 
 
+class VOCClassification(torchvision.datasets.VisionDataset):
+    cls_to_idx = {'aeroplane': 0, 'bicycle': 1, 'bird': 2, 'boat': 3, 'bottle': 4,
+                  'bus': 5, 'car': 6, 'cat': 7, 'chair': 8, 'cow': 9,
+                  'diningtable': 10, 'dog': 11, 'horse': 12, 'motorbike': 13, 'person': 14,
+                  'pottedplant': 15, 'sheep': 16, 'sofa': 17, 'train': 18, 'tvmonitor': 19}
+    idx_to_cls = ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
+                  'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
+                  'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
+
+    def __init__(self, root,
+                 year = '2007',
+                 image_set = 'train',
+                 download = False,
+                 transform = None,
+                 target_transform = None):
+        super(VOCClassification, self).__init__(root, transform = transform, target_transform = target_transform)
+        DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012', 'filename': 'VOCtrainval_11-May-2012.tar'},
+                             '2007': {'base_dir': 'VOCdevkit/VOC2007', 'filename': 'VOCtrainval_06-Nov-2007.tar'}}
+        self.year = year
+        valid_values = ("train", "trainval", "val", "test")
+        if image_set not in valid_values:
+            raise ValueError(f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
+        self.image_set = image_set
+        base_dir = DATASET_YEAR_DICT[year]['base_dir']
+        voc_root = os.path.join(self.root, base_dir)
+        image_dir = os.path.join(voc_root, 'JPEGImages')
+        label_dir = os.path.join(voc_root, 'ImageSets/Main')
+
+        # if download:
+        #     download_extract(self.url, self.root, self.filename, self.md5)
+
+        if not os.path.isdir(voc_root):
+            raise RuntimeError('Dataset not found or corrupted. You can use download=True to download it')
+
+        self.images, self.labels = [], []
+        for label, idx in self.cls_to_idx.items():
+            with open(os.path.join(label_dir, label + '_' + image_set + '.txt'), "r") as f:
+                for l in f.readlines():
+                    filename, flag = l.strip().split()
+                    if flag == '1':
+                        self.images.append(os.path.join(image_dir, filename + ".jpg"))
+                        self.labels.append(idx)
+        assert (len(self.images) == len(self.labels))
+
+    def __getitem__(self, index):
+        img = Image.open(self.images[index]).convert('RGB')
+        target = self.labels[index]
+        if self.transform is not None:
+            img = self.transform(img)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        return img, target
+
+    def __len__(self):
+        return len(self.images)
+
+
 class VOCDetection(torchvision.datasets.VOCDetection):
     def __init__(self,
                  root,
-                 year = '2012',
+                 year = '2007',
                  image_set = 'train',
                  download = False,
                  transform = None,
@@ -335,14 +393,11 @@ class VOCDetection(torchvision.datasets.VOCDetection):
         #     download_extract(self.url, self.root, self.filename, self.md5)
 
         if not os.path.isdir(voc_root):
-            raise RuntimeError('Dataset not found or corrupted.' +
-                               ' You can use download=True to download it')
+            raise RuntimeError('Dataset not found or corrupted. You can use download=True to download it')
 
         splits_dir = os.path.join(voc_root, 'ImageSets/Main')
 
-        split_f = os.path.join(splits_dir, image_set.rstrip('\n') + '.txt')
-
-        with open(os.path.join(split_f), "r") as f:
+        with open(os.path.join(splits_dir, image_set.rstrip('\n') + '.txt'), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
 
         self.images = [os.path.join(image_dir, x + ".jpg") for x in file_names]

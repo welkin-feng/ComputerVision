@@ -92,5 +92,7 @@ class YOLOBackboneTrainer(ClassificationTrainer):
         return outputs, loss
 
     def _calculate_acc(self, outputs, targets, train_mode = True):
-        self._acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
-                                                                        self.total, train_mode = train_mode)
+        _, predicted = outputs.max(1)
+        self.total += targets.size(0)
+        self.correct += predicted.eq(targets).sum().item()
+        self._acc = self.correct / self.total

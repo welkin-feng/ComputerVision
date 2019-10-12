@@ -522,4 +522,6 @@ def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
 
 def yolo_v2_resnet50_backbone(num_classes, pretrained_backbone = False, **kwargs):
     from torchvision.models.resnet import resnet50
-    return resnet50(pretrained = pretrained_backbone, num_classes = num_classes)
+    backbone = resnet50(pretrained = pretrained_backbone)
+    backbone.fc = nn.Linear(512 * 4, num_classes)
+    return backbone

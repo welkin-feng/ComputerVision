@@ -15,9 +15,9 @@ import numpy as np
 
 import torch
 import torchvision
-import torchvision.transforms as transforms
 
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 __all__ = ['Cutout', 'data_augmentation', 'get_data_loader',
            'mixup_data', 'mixup_criterion', 'calculate_acc']

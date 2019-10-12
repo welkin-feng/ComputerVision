@@ -2,15 +2,21 @@
 architecture: yolo_v2_resnet50
 
 # log and checkpoint
-ckpt_path: ./
 ckpt_name: yolo_v2_resnet50
 
 # datasets
 data_path: ./data
-num_classes: 20
 dataset: voc2007
+num_classes: 20
 size_list: [320,]
 size_change_freq: 160
+
+# multi classifiers used during training
+pretrained_backbone: True
+#num_classifier: 1
+#classifier_weight: [1.,]
+min_size: [320,]
+use_transform: False
 
 # training parameters
 use_gpu: True
@@ -20,11 +26,6 @@ test_batch: 32
 eval_freq: 2
 print_interval: 10
 workers: 4
-
-# multi classifiers used during training
-pretrained_backbone: True
-#num_classifier: 1
-#classifier_weight: [1.,]
 
 # regularization
 #mixup: False

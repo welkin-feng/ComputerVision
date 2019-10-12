@@ -23,6 +23,27 @@ from torch.utils.data import DataLoader
 from PIL import Image
 
 
+class RandomScale(object):
+    def __init__(self, scale = (0.8, 1.2)):
+        if isinstance(scale, (int, float)):
+            scale = (scale, scale)
+        assert (isinstance(scale, (list, tuple)) and len(scale) == 2)
+        if scale[0] > scale[1]:
+            warnings.warn("range should be of kind (min, max)")
+        self.scale = scale
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be scaled.
+
+        Returns:
+            PIL Image: Rescaled image.
+        """
+        r_scale = random.uniform(*self.scale)
+        return F.resize(img, (int(img.size[1] * r_scale), int(img.size[0] * r_scale)))
+
+
 class VOCTransformCompose(object):
     def __init__(self, transforms):
         self.transforms = transforms

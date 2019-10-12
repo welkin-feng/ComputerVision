@@ -21,7 +21,7 @@ from .util_modules import conv_bn_activation, conv_bn_relu
 from .yolo_modules import GeneralizedYOLO
 from .yolo_modules import GeneralizedYOLOTransform
 
-__all__ = ['Darknet19', 'YOLOv2', 'yolo_v2_darknet19', 'yolo_v2_resnet50']
+__all__ = ['Darknet19', 'YOLOv2', 'yolo_v2_darknet19', 'yolo_v2_resnet50', 'yolo_v2_resnet50_backbone']
 
 
 class Darknet19(nn.Module):
@@ -518,3 +518,8 @@ def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
     backbone.downsample_factor = 32
 
     return YOLOv2(backbone, num_classes, **kwargs)
+
+
+def yolo_v2_resnet50_backbone(num_classes, pretrained_backbone = False, **kwargs):
+    from torchvision.models.resnet import resnet50
+    return resnet50(pretrained = pretrained_backbone, num_classes = num_classes)

@@ -11,7 +11,7 @@ File Name:  yolo_trainer.py
 __author__ = 'Welkin'
 __date__ = '2019/10/11 15:14'
 
-import voc_util, cifar_util
+import voc_util
 
 from trainer import DetectionTrainer, ClassificationTrainer
 
@@ -65,10 +65,12 @@ class YOLOBackboneTrainer(ClassificationTrainer):
         size_list = self.config.size_list
         size = size_list[0]
         if self.epoch % self.config.size_change_freq == 0:
-            size = size_list[self.epoch // 5 % len(size_list)]
-        return transforms.Compose([transforms.RandomHorizontalFlip(),
+            size = size_list[self.epoch // self.config.size_change_freq % len(size_list)]
+        return transforms.Compose([transforms.ColorJitter(),
+                                   transforms.RandomHorizontalFlip(),
                                    transforms.RandomVerticalFlip(),
-                                   voc_util.RandomScale(),
+                                   transforms.RandomRotation(180),
+                                   voc_util.RandomScale(scale = (0.5, 1.2)),
                                    transforms.RandomCrop(size, pad_if_needed = True),
                                    transforms.ToTensor(),
                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), ])

@@ -39,7 +39,7 @@ class DetectionTrainer(Trainer):
         size_list = self.config.size_list
         size = size_list[0]
         if self.epoch % self.config.size_change_freq == 0:
-            size = size_list[self.epoch // 5 % len(size_list)]
+            size = size_list[self.epoch // self.config.size_change_freq % len(size_list)]
 
         if train_mode:
             img_trans = transforms.Compose([transforms.ColorJitter(),

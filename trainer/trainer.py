@@ -15,16 +15,12 @@ import time
 import yaml
 import logging
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.backends.cudnn as cudnn
-import cifar_util
-import voc_util
 
+from torch import nn, optim
+from torch.backends import cudnn
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
-from torchvision.transforms import transforms
-from torchvision.datasets import vision
+
 from models import *
 from util import *
 
@@ -123,25 +119,25 @@ class Trainer(object):
         # start training network
         self.logger.info("            =======  Training  =======\n")
 
-        train_loss = None
         for epoch in range(self.last_epoch + 1, self.config.epochs):
             self.epoch = epoch
+
+            # train one epoch
+            train_loss, _ = self.train_step(train_loader)
+            # validate network
+            if epoch == 0 or (epoch + 1) % self.config.eval_freq == 0 or epoch == self.config.epochs - 1:
+                self.test(test_loader)
+
             # 更新学习率lr
             # adjust learning rate
             if self.lr_scheduler:
                 if self.config.lr_scheduler.type == 'ADAPTIVE':
                     if self.config.lr_scheduler.mode == 'max':
-                        self.lr_scheduler.step(self.best_prec, self.epoch)
+                        self.lr_scheduler.step(self.best_prec, epoch)
                     elif self.config.lr_scheduler.mode == 'min' and train_loss is not None:
-                        self.lr_scheduler.step(train_loss, self.epoch)
+                        self.lr_scheduler.step(train_loss, epoch)
                 else:
-                    self.lr_scheduler.step(self.epoch)
-
-            # train one epoch
-            train_loss, _ = self.train_step(train_loader)
-            # validate network
-            if self.epoch == 0 or (self.epoch + 1) % self.config.eval_freq == 0 or self.epoch == self.config.epochs - 1:
-                self.test(test_loader)
+                    self.lr_scheduler.step(epoch)
 
         self.logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(self.best_prec))
 
@@ -285,6 +281,3 @@ class Trainer(object):
             acc
         """
         raise NotImplementedError()
-
-
-

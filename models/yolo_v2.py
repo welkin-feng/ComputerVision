@@ -512,7 +512,7 @@ def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
     backbone = resnet50(pretrained = pretrained_backbone)
     return_layers = {'layer3': 'feat3', 'layer4': 'feat4'}
     body = IntermediateLayerGetter(backbone, return_layers = return_layers)
-    backbone = torch.nn.Sequential(body)
+    backbone = nn.Sequential(body)
     backbone = PassthroughLayer(backbone)
     backbone.out_channels = 6144
     backbone.downsample_factor = 32

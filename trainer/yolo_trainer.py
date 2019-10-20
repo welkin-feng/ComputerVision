@@ -94,7 +94,11 @@ class YOLOBackboneTrainer(ClassificationTrainer):
         return outputs, loss
 
     def _calculate_acc(self, outputs, targets, train_mode = True):
-        _, predicted = outputs.max(1)
         self.total += targets.size(0)
-        self.correct += predicted.eq(targets).sum().item()
+        # _, predicted = outputs.max(1)
+        # self.correct += predicted.eq(targets).sum().item()
+        _, predicted = outputs.sort(dim = -1)
+        predicted = predicted[:, -5:]
+        for i in range(5):
+            self.correct += predicted[:, i].eq(targets).sum().item()
         self._acc = self.correct / self.total

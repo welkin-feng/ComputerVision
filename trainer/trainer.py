@@ -39,10 +39,6 @@ class Trainer(object):
         # 设置路径 work_path
         # set work_path
         self.args = EasyDict({'work_path': work_path, 'resume': resume})
-        # 创建logger用于记录日志
-        # create logger and write to log.txt
-        self.logger = Logger(log_file_name = self.args.work_path + '/log.txt',
-                             log_level = logging.DEBUG, logger_name = "CIFAR").get_log()
         # 设置event路径
         # set event path
         self.writer = SummaryWriter(logdir = self.args.work_path + '/event')
@@ -55,6 +51,11 @@ class Trainer(object):
         # 将config转换成EasyDict
         # convert config dict to EasyDict
         self.config = EasyDict(config_dict)
+
+        # 创建logger用于记录日志
+        # create logger and write to log.txt
+        self.logger = Logger(log_file_name = self.args.work_path + '/log.txt',
+                             log_level = logging.DEBUG, logger_name = self.config.architecture).get_log()
 
         self._init_model()
 

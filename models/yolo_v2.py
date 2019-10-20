@@ -153,7 +153,7 @@ class YOLOv2(GeneralizedYOLO):
             conv_bn_relu(backbone.out_channels, 1024, 3, 1, 1),
             conv_bn_relu(1024, 1024, 3, 1, 1),
             conv_bn_relu(1024, 1024, 3, 1, 1),
-            conv_bn_relu(1024, out_channels, 1)
+            nn.Conv2d(1024, out_channels, 1)
         )
 
         postprocess = YOLOv2Postprocess(backbone.downsample_factor, num_classes, anchor_boxes, box_iou_thresh,
@@ -206,10 +206,10 @@ class YOLOv2Postprocess(nn.Module):
             losses (Dict[Tensor]): the losses for the model during training. During
                 testing, it is an empty dict.
         """
-        start_time = time.time()
+        _start_time = time.time()
         proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
             boxes_offset, get_prior_anchor_loss)
-        get_proposed_boxes_time = time.time() - start_time
+        _get_proposed_boxes_time = time.time() - _start_time
 
         result, losses = [], torch.scalar_tensor(0.)
         if self.training:
@@ -227,15 +227,15 @@ class YOLOv2Postprocess(nn.Module):
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
                      losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
-        comupute_loss_time = time.time() - start_time - get_proposed_boxes_time
+        _comupute_loss_time = time.time() - _start_time - _get_proposed_boxes_time
 
         # transform xywh to xyxy
         proposed_boxes_loc = self.bboxes_transform(proposed_boxes_loc, image_sizes)
-        bboxes_transform_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time
+        _bboxes_transform_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time
         # filter
         cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_loc,
                                                                proposed_boxes_score)
-        filter_proposals_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time
+        _filter_proposals_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - _bboxes_transform_time
         # nms
         pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
         num_images = len(pred_boxes_loc)
@@ -245,12 +245,12 @@ class YOLOv2Postprocess(nn.Module):
                      scores = pred_boxes_score[i],
                      labels = pred_boxes_label[i])
             )
-        nms_time = time.time() - start_time - get_proposed_boxes_time - comupute_loss_time - bboxes_transform_time - filter_proposals_time
-        # print(f"  - get_proposed_boxes_time: {get_proposed_boxes_time:.2f}, "
-        #       f"comupute_loss_time: {comupute_loss_time:.2f}, "
-        #       f"bboxes_transform_time: {bboxes_transform_time:.2f}, "
-        #       f"filter_proposals_time: {filter_proposals_time:.2f}, "
-        #       f"nms_time: {nms_time:.2f}")
+        _nms_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - _bboxes_transform_time - _filter_proposals_time
+        # print(f"  - get_proposed_boxes_time: {_get_proposed_boxes_time:.2f}, "
+        #       f"comupute_loss_time: {_comupute_loss_time:.2f}, "
+        #       f"bboxes_transform_time: {_bboxes_transform_time:.2f}, "
+        #       f"filter_proposals_time: {_filter_proposals_time:.2f}, "
+        #       f"nms_time: {_nms_time:.2f}")
 
         return result, losses
 

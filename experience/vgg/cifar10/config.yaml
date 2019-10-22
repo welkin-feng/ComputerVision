@@ -2,13 +2,16 @@
 architecture: vgg19_bn
 
 # log and checkpoint
-data_path: ./data
-ckpt_path: ./
 ckpt_name: vgg19_bn
 
 # datasets
-num_classes: 10
+data_path: ./data
 dataset: cifar10
+num_classes: 10
+
+# multi classifiers used during training
+num_classifier: 1
+classifier_weight: [1.,]
 
 # training parameters
 use_gpu: True
@@ -19,10 +22,6 @@ test_batch: 200
 eval_freq: 2
 print_interval: 100
 workers: 4
-
-# multi classifiers used during training
-num_classifier: 1
-classifier_weight: [1.,]
 
 # regularization
 mixup: False

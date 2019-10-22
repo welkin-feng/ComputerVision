@@ -27,15 +27,10 @@ eval_freq: 2
 print_interval: 10
 workers: 4
 
-# regularization
-#mixup: False
-#mixup_alpha: 0.4
-
 augmentation:
   normalize: True
   random_crop: True
   random_horizontal_filp: True
-  cutout: False
   holes: 1
   length: 8
 
@@ -51,14 +46,14 @@ optimize:
 # learning rate scheduler
 lr_scheduler:
   # type: ADAPTIVE or STEP or MultiSTEP or COSINE or HTD
-  type: MultiSTEP
+  type: ADAPTIVE
   base_lr: 0.001
   # for ADAPTIVE, STEP and MultiSTEP
   lr_mults: 0.1
   # for ADAPTIVE, COSINE and HTD
   min_lr: 0.0
   # only for ADAPTIVE
-  mode: max
+  mode: min
   patience: 10
   # only for STEP
   step_size: 50

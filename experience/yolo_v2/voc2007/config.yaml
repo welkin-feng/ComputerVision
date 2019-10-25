@@ -29,10 +29,10 @@ workers: 4
 
 augmentation:
   normalize: True
+  color_jitter: True
+  random_filp: True
+  resize: True
   random_crop: True
-  random_horizontal_filp: True
-  holes: 1
-  length: 8
 
 # optimizer
 optimize:

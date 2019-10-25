@@ -100,7 +100,7 @@ class Trainer(object):
 
         self.logger.info(self.config)
         self.logger.info(self.net)
-        self.logger.info(" == total parameters: " + str(count_parameters(self.net)))
+        self.logger.info(f" == total parameters: {count_parameters(self.net)}")
 
     def start_training(self):
         """
@@ -140,7 +140,7 @@ class Trainer(object):
                 else:
                     self.lr_scheduler.step(epoch)
 
-        self.logger.info("======== Training Finished.   best_test_acc: {:.3f}% ========".format(self.best_prec))
+        self.logger.info(f"======== Training Finished.   best_test_acc: {self.best_prec:.3%} ========")
 
     def train_step(self, train_loader):
         start = time.time()
@@ -148,7 +148,7 @@ class Trainer(object):
 
         _train_loss, train_loss, train_acc = 0, 0, 0
 
-        self.logger.info(" === Epoch: [{}/{}] === ".format(self.epoch + 1, self.config.epochs))
+        self.logger.info(f" === Epoch: [{self.epoch + 1}/{self.config.epochs}] === ")
 
         for batch_index, (inputs, targets) in enumerate(train_loader):
             batch_start = time.time()
@@ -179,10 +179,11 @@ class Trainer(object):
             # log
             if (batch_index + 1) % self.config.print_interval == 0 or (batch_index + 1) == len(train_loader):
                 train_acc = self._get_acc()
-                self.logger.info("   == step: [{:3}/{}], train loss: {:.3f} | train acc: {:6.3f}% | lr: {:.2e}".format(
-                    batch_index + 1, len(train_loader), train_loss, 100.0 * train_acc, self.current_lr))
+                self.logger.info(f"   == step: [{batch_index + 1:3}/{len(train_loader)}], "
+                                 f"train loss: {train_loss:.3f} | train acc: {train_acc:.3%} | "
+                                 f"lr: {self.current_lr:.2e}")
 
-        self.logger.info("   == cost time: {:.4f}s".format(time.time() - start))
+        self.logger.info(f"   == cost time: {time.time() - start:.4f}s")
         self.writer.add_scalar('learning_rate', self.current_lr, self.epoch)
         self.writer.add_scalar('train_loss', train_loss, self.epoch)
         self.writer.add_scalar('train_acc', train_acc, self.epoch)
@@ -194,7 +195,7 @@ class Trainer(object):
         self.net.eval()
         _test_loss, test_loss, test_acc = 0, 0, 0
 
-        self.logger.info(" === Validate ===".format(self.epoch + 1, self.config.epochs))
+        self.logger.info(f" === Validate: [{self.epoch + 1}/{self.config.epochs}] ===")
 
         with torch.no_grad():
             for batch_index, (inputs, targets) in enumerate(test_loader):
@@ -208,13 +209,13 @@ class Trainer(object):
                 self._calculate_acc(outputs, targets, train_mode = False)
 
         test_acc = self._get_acc()
-        self.logger.info("   == test loss: {:.3f} | test acc: {:6.3f}%".format(test_loss, 100.0 * test_acc))
-        self.logger.info("   == cost time: {:.4f}s".format(time.time() - start))
+        self.logger.info(f"   == test loss: {test_loss:.3f} | test acc: {test_acc:.3%}")
+        self.logger.info(f"   == cost time: {time.time() - start:.4f}s")
         self.writer.add_scalar('test_loss', test_loss, self.epoch)
         self.writer.add_scalar('test_acc', test_acc, self.epoch)
 
         # Save checkpoint.
-        test_acc = 100. * test_acc
+        # test_acc = 100. * test_acc
         is_best = test_acc > self.best_prec
         if is_best:
             self.best_prec = test_acc

@@ -14,8 +14,6 @@ __date__ = '2019/10/11 15:12'
 import torch
 import voc_util
 
-from torchvision.transforms import transforms
-from torchvision.datasets import vision
 from trainer import Trainer
 
 
@@ -41,28 +39,7 @@ class DetectionTrainer(Trainer):
         if self.epoch % self.config.size_change_freq == 0:
             size = size_list[self.epoch // self.config.size_change_freq % len(size_list)]
 
-        if train_mode:
-            img_trans = transforms.Compose([transforms.ColorJitter(),
-                                            transforms.ToTensor(),
-                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-            target_trans = voc_util.VOCTargetTransform()
-            trans = voc_util.VOCTransformCompose([vision.StandardTransform(None, target_trans),
-                                                  voc_util.VOCTransformFlip(0.5, 0.5),
-                                                  voc_util.VOCTransformResize(size = size),
-                                                  voc_util.VOCTransformRandomScale(scale = (0.8, 1.2)),
-                                                  voc_util.VOCTransformRandomExpand(ratio = (0.8, 1.2)),
-                                                  voc_util.VOCTransformRandomCrop(size = size),
-                                                  vision.StandardTransform(img_trans, None)])
-            return trans
-        else:
-            img_trans = transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-            target_trans = voc_util.VOCTargetTransform()
-            trans = voc_util.VOCTransformCompose([vision.StandardTransform(None, target_trans),
-                                                  voc_util.VOCTransformResize(size = (size, size),
-                                                                              scale_with_padding = True),
-                                                  vision.StandardTransform(img_trans, None)])
-            return trans
+        return voc_util.data_augmentation(self.config, train_mode, size)
 
     def _get_dataloader(self, transforms, train_mode = True):
         return voc_util.get_data_loader(transforms, self.config, train_mode)

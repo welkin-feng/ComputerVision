@@ -19,6 +19,8 @@ import torch
 import torchvision
 import torchvision.transforms.functional as F
 
+from torchvision.transforms import transforms
+from torchvision.datasets import vision
 from torch.utils.data import DataLoader
 from PIL import Image
 
@@ -471,6 +473,36 @@ def get_data_loader(transforms, config, train_mode = True):
                              num_workers = config.workers, collate_fn = voc_collate)
 
     return data_loader
+
+
+def data_augmentation(config, size, train_mode = True, **kwargs):
+    img_trans, trans = [], [vision.StandardTransform(None, VOCTargetTransform())]
+
+    if train_mode and config.augmentation.color_jitter:
+        img_trans.append(transforms.ColorJitter())
+    img_trans.append(transforms.ToTensor())
+    if config.augmentation.normalize:
+        img_trans.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
+    img_trans = transforms.Compose(img_trans)
+
+    if train_mode:
+        if config.augmentation.random_filp:
+            trans.append(VOCTransformFlip(0.5, 0.5))
+        if config.augmentation.resize:
+            if config.augmentation.random_crop:
+                trans.extend([VOCTransformResize(size = size),
+                              VOCTransformRandomScale(scale = (0.8, 1.2)),
+                              VOCTransformRandomExpand(ratio = (0.8, 1.2)),
+                              VOCTransformRandomCrop(size = size)])
+            else:
+                trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))
+        elif config.augmentation.random_crop:
+            trans.append(VOCTransformRandomCrop(size = size))
+    else:
+        trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))
+
+    trans.append(vision.StandardTransform(img_trans, None))
+    return VOCTransformCompose(trans)
 
 
 def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = tuple(i / 10 for i in range(10)),

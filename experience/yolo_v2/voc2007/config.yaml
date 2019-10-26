@@ -31,7 +31,9 @@ augmentation:
   normalize: True
   color_jitter: True
   random_filp: True
-  resize: True
+  resize: False
+  random_scale: [0.8, 0.8]
+  random_expand: [1.0, 1.2]
   random_crop: True
 
 # optimizer

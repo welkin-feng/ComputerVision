@@ -490,13 +490,22 @@ def data_augmentation(config, size, train_mode = True, **kwargs):
             trans.append(VOCTransformFlip(0.5, 0.5))
         if config.augmentation.resize:
             if config.augmentation.random_crop:
-                trans.extend([VOCTransformResize(size = size),
-                              VOCTransformRandomScale(scale = (0.8, 1.2)),
-                              VOCTransformRandomExpand(ratio = (0.8, 1.2)),
-                              VOCTransformRandomCrop(size = size)])
+                trans.append(VOCTransformResize(size = size))
             else:
                 trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))
-        elif config.augmentation.random_crop:
+        if config.augmentation.random_crop:
+            if config.augmentation.random_scale:
+                if isinstance(config.augmentation.random_scale, (list, tuple)):
+                    scale = config.augmentation.random_scale
+                else:
+                    scale = (0.8, 1.2)
+                trans.append(VOCTransformRandomScale(scale))
+            if config.augmentation.random_expand:
+                if isinstance(config.augmentation.random_expand, (list, tuple)):
+                    ratio = config.augmentation.random_expand
+                else:
+                    ratio = (0.8, 1.2)
+                trans.append(VOCTransformRandomExpand(ratio))
             trans.append(VOCTransformRandomCrop(size = size))
     else:
         trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))

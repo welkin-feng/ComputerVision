@@ -517,7 +517,13 @@ def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
     backbone.out_channels = 6144
     backbone.downsample_factor = 32
 
-    return YOLOv2(backbone, num_classes, **kwargs)
+    anchor_boxes = (0.8 * torch.tensor([[38.08, 63.68],  # width, height for anchor 1
+                                        [89.28, 147.20],  # width, height for anchor 2
+                                        [145.28, 285.76],  # etc.
+                                        [257.92, 169.28],
+                                        [330.56, 340.80]])).tolist()
+
+    return YOLOv2(backbone, num_classes, anchor_boxes, **kwargs)
 
 
 def yolo_v2_resnet50_backbone(num_classes, pretrained_backbone = False, **kwargs):

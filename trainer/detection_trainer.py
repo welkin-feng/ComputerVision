@@ -39,7 +39,7 @@ class DetectionTrainer(Trainer):
         if self.epoch % self.config.size_change_freq == 0:
             size = size_list[self.epoch // self.config.size_change_freq % len(size_list)]
 
-        return voc_util.data_augmentation(self.config, train_mode, size)
+        return voc_util.data_augmentation(self.config, size, train_mode)
 
     def _get_dataloader(self, transforms, train_mode = True):
         return voc_util.get_data_loader(transforms, self.config, train_mode)

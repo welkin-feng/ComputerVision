@@ -475,7 +475,7 @@ def get_data_loader(transforms, config, train_mode = True):
     return data_loader
 
 
-def data_augmentation(config, size, train_mode = True, **kwargs):
+def data_augmentation(config, size, train_mode = True):
     img_trans, trans = [], [vision.StandardTransform(None, VOCTargetTransform())]
 
     if train_mode and config.augmentation.color_jitter:

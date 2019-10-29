@@ -109,7 +109,7 @@ class YOLOv2(GeneralizedYOLO):
                  # Box parameters
                  num_classes, anchor_boxes = None,
                  # for testing
-                 box_iou_thresh = 0.1, nms_threshold = 0.5,
+                 box_iou_thresh = 0.6, nms_threshold = 0.5,
                  # transform parameters
                  min_size = (288,), max_size = 608,
                  image_mean = None, image_std = None,
@@ -207,7 +207,7 @@ class YOLOv2Postprocess(nn.Module):
                 testing, it is an empty dict.
         """
         _start_time = time.time()
-        proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
+        proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, prior_anchor_losses = self.get_proposed_boxes(
             boxes_offset, get_prior_anchor_loss)
         _get_proposed_boxes_time = time.time() - _start_time
 
@@ -222,7 +222,7 @@ class YOLOv2Postprocess(nn.Module):
             object_scale = kwargs.get('object_scale', 5)
             prior_scale = kwargs.get('prior_scale', 0.01)
 
-            losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score, targets,
+            losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, targets,
                                         image_sizes, noobject_scale, class_scale, coord_scale, object_scale)
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
                      losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
@@ -230,10 +230,10 @@ class YOLOv2Postprocess(nn.Module):
         _comupute_loss_time = time.time() - _start_time - _get_proposed_boxes_time
 
         # transform xywh to xyxy
-        proposed_boxes_loc = self.bboxes_transform(proposed_boxes_loc, image_sizes)
+        proposed_boxes_xyxy = self.bboxes_transform(proposed_boxes_xywh, image_sizes)
         _bboxes_transform_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time
         # filter
-        cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_loc,
+        cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_xyxy,
                                                                proposed_boxes_score)
         _filter_proposals_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - _bboxes_transform_time
         # nms
@@ -327,7 +327,7 @@ class YOLOv2Postprocess(nn.Module):
 
         return label_list, loc, score
 
-    def comupute_loss(self, proposed_boxes_classes, proposed_boxes_loc, proposed_boxes_score,
+    def comupute_loss(self, proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score,
                       targets, image_sizes, noobject_scale = 1, class_scale = 1, coord_scale = None, object_scale = 5):
         """
         for pred_box in all prediction box:
@@ -347,7 +347,7 @@ class YOLOv2Postprocess(nn.Module):
 
         Args:
             proposed_boxes_classes
-            proposed_boxes_loc
+            proposed_boxes_xywh
             proposed_boxes_score
             targets
             image_sizes
@@ -359,9 +359,9 @@ class YOLOv2Postprocess(nn.Module):
         class_losses, coord_losses, obj_score_losses, noobj_score_losses = 0, 0, 0, 0
 
         # transform xywh to xyxy
-        proposed_boxes_xyxy = self.bboxes_transform(proposed_boxes_loc, image_sizes)
+        proposed_boxes_xyxy = self.bboxes_transform(proposed_boxes_xywh, image_sizes)
 
-        proposed_boxes_loc = proposed_boxes_loc / self.size_divisible
+        proposed_boxes_xywh = proposed_boxes_xywh / self.size_divisible
 
         cal_coord_scale = coord_scale is None
 
@@ -370,7 +370,7 @@ class YOLOv2Postprocess(nn.Module):
             t_labels = targets[i]['labels']
             image_size = image_sizes[i]
             p_boxes_cls = proposed_boxes_classes[i]
-            p_boxes_loc = proposed_boxes_loc[i]
+            p_boxes_xywh = proposed_boxes_xywh[i]
             p_boxes_score = proposed_boxes_score[i]
 
             # 计算 背景 损失
@@ -391,7 +391,7 @@ class YOLOv2Postprocess(nn.Module):
             correspond_box_idx = torch.cat((t_box_cell_idx, t_box_correspond_anchor_idx), dim = -1).t().tolist()
             # 计算 目标 损失
             class_loss, coord_loss, obj_score_loss = self._compute_obj_loss(t_boxes, t_labels, correspond_box_idx,
-                                                                            p_boxes_cls, p_boxes_loc, p_boxes_score,
+                                                                            p_boxes_cls, p_boxes_xywh, p_boxes_score,
                                                                             class_scale, coord_scale, object_scale)
             noobj_score_losses += noobj_score_loss
             class_losses += class_loss
@@ -427,15 +427,15 @@ class YOLOv2Postprocess(nn.Module):
         return noobj_score_loss
 
     @staticmethod
-    def _compute_obj_loss(t_boxes, t_labels, correspond_box_idx, p_boxes_cls, p_boxes_loc, p_boxes_score,
+    def _compute_obj_loss(t_boxes, t_labels, correspond_box_idx, p_boxes_cls, p_boxes_xywh, p_boxes_score,
                           class_scale, coord_scale, object_scale):
         cor_box_cls = p_boxes_cls[correspond_box_idx]  # [t_boxes.shape[0], 20]
-        cor_box_loc = p_boxes_loc[correspond_box_idx]  # [t_boxes.shape[0],4]
+        cor_box_xywh = p_boxes_xywh[correspond_box_idx]  # [t_boxes.shape[0],4]
         cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
         # 计算其coord loss, class loss 和 iou_score loss
         class_loss = class_scale * F.cross_entropy(cor_box_cls, t_labels)
-        coord_loss = torch.mean(coord_scale * (F.mse_loss(cor_box_loc[:, :2], t_boxes[:, :2], reduction = 'none') +
-                                               F.mse_loss(cor_box_loc[:, 2:].log(), t_boxes[:, 2:].log(),
+        coord_loss = torch.mean(coord_scale * (F.mse_loss(cor_box_xywh[:, :2], t_boxes[:, :2], reduction = 'none') +
+                                               F.mse_loss(cor_box_xywh[:, 2:].log(), t_boxes[:, 2:].log(),
                                                           reduction = 'none')))
         obj_score_loss = object_scale * F.mse_loss(cor_box_score, torch.ones_like(cor_box_score))
 

@@ -108,18 +108,23 @@ class VOCTransformResize(object):
 
 
 class VOCTransformRandomScale(object):
-    def __init__(self, scale = (0.8, 1.2)):
+    def __init__(self, scale = (0.8, 1.2), ratio_jitter = 0.3):
         if isinstance(scale, (int, float)):
             scale = (scale, scale)
         assert (isinstance(scale, (list, tuple)) and len(scale) == 2)
         if scale[0] > scale[1]:
             warnings.warn("range should be of kind (min, max)")
         self.scale = scale
+        self.ratio_jitter = ratio_jitter if ratio_jitter >= 0 else 0
 
     def __call__(self, img, target):
         r_scale = random.uniform(*self.scale)
-        img = F.resize(img, (int(img.size[1] * r_scale), int(img.size[0] * r_scale)))
-        target['boxes'] = (target['boxes'] * r_scale).long().float()
+        h_ratio = r_scale * (1 + random.uniform(-self.ratio_jitter, self.ratio_jitter))
+        w_ratio = r_scale * (1 + random.uniform(-self.ratio_jitter, self.ratio_jitter))
+
+        img = F.resize(img, (int(img.size[1] * h_ratio), int(img.size[0] * w_ratio)))
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
         return img, target
 
 
@@ -479,7 +484,7 @@ def data_augmentation(config, size, train_mode = True):
     img_trans, trans = [], [vision.StandardTransform(None, VOCTargetTransform())]
 
     if train_mode and config.augmentation.color_jitter:
-        img_trans.append(transforms.ColorJitter())
+        img_trans.append(transforms.ColorJitter(brightness = 1.5, saturation = 1.5, hue = 0.1))
     img_trans.append(transforms.ToTensor())
     if config.augmentation.normalize:
         img_trans.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))

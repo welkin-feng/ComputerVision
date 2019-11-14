@@ -519,7 +519,7 @@ def data_augmentation(config, size, train_mode = True):
     return VOCTransformCompose(trans)
 
 
-def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = tuple(i / 10 for i in range(10)),
+def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = tuple(i / 10 for i in range(11)),
                  iou_thresh = 0.5):
     """
     calculate all p-r pairs among different score_thresh for one class of one image.
@@ -581,7 +581,7 @@ def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = 
             continue
 
         tp = max_ious_idx[max_ious > iou_thresh].unique().numel()
-        recall.append(tp / not_difficult.sum())
+        recall.append(tp / not_difficult.sum().item())
         precision.append(tp / max_ious_idx.numel())
 
     return recall, precision

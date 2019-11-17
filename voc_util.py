@@ -102,8 +102,8 @@ class VOCTransformResize(object):
             w_ratio, h_ratio = self.size[1] / img.size[0], self.size[0] / img.size[1]
 
         img = F.resize(img, self.size)
-        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
-        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).floor()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).floor()
         return img, target
 
 
@@ -123,8 +123,8 @@ class VOCTransformRandomScale(object):
         w_ratio = r_scale * (1 + random.uniform(-self.ratio_jitter, self.ratio_jitter))
 
         img = F.resize(img, (int(img.size[1] * h_ratio), int(img.size[0] * w_ratio)))
-        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
-        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).floor()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).floor()
         return img, target
 
 
@@ -159,7 +159,7 @@ class VOCTransformExpand(object):
                 img_h, img_w = int(h * self.ratio), int(w * self.ratio)
                 expand_h, expand_w = h, w
                 img = F.resize(img, (img_h, img_w))
-                target['boxes'] = (target['boxes'] * self.ratio).long().float()
+                target['boxes'] = (target['boxes'] * self.ratio).floor()
             else:
                 img_h, img_w = h, w
                 expand_h, expand_w = int(h * self.ratio), int(w * self.ratio)
@@ -291,8 +291,8 @@ class VOCTransformRandomCrop(object):
 
         w_ratio, h_ratio = self.size[1] / img.size[0], self.size[0] / img.size[1]
         img = F.resize(img, self.size)
-        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).long().float()
-        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).long().float()
+        target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] * w_ratio).floor()
+        target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] * h_ratio).floor()
 
         return img, target
 
@@ -519,72 +519,87 @@ def data_augmentation(config, size, train_mode = True):
     return VOCTransformCompose(trans)
 
 
-def calculate_pr(pred_boxes, pred_scores, gt_boxes, gt_difficult, score_range = tuple(i / 10 for i in range(11)),
-                 iou_thresh = 0.5):
+def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0.5):
     """
-    calculate all p-r pairs among different score_thresh for one class of one image.
+        calculate tp/fp for all predicted bboxes for one class of one image.
+        对于匹配到同一gt的不同bboxes，让score最高tp = 1，其它的tp = 0
+    """
+    if gt_boxes.numel() == 0:
+        return 0, [], []
+
+    # 若无对应的boxes，则 tp 为空
+    if pred_boxes.numel() == 0:
+        return len(gt_boxes), [], []
+
+    # 否则计算所有预测框与gt之间的iou
+    ious = pred_boxes.new_zeros((len(gt_boxes), len(pred_boxes)))
+    for i in range(len(gt_boxes)):
+        gb = gt_boxes[i]
+        area_pb = (pred_boxes[:, 2] - pred_boxes[:, 0]) * (pred_boxes[:, 3] - pred_boxes[:, 1])
+        area_gb = (gb[2] - gb[0]) * (gb[3] - gb[1])
+        xx1 = pred_boxes[:, 0].clamp(min = gb[0].item())  # [N-1,]
+        yy1 = pred_boxes[:, 1].clamp(min = gb[1].item())
+        xx2 = pred_boxes[:, 2].clamp(max = gb[2].item())
+        yy2 = pred_boxes[:, 3].clamp(max = gb[3].item())
+        inter = (xx2 - xx1).clamp(min = 0) * (yy2 - yy1).clamp(min = 0)  # [N-1,]
+        ious[i] = inter / (area_pb + area_gb - inter)
+    # 每个预测框的最大iou所对应的gt记为其匹配的gt
+    max_ious, max_ious_idx = ious.max(dim = 0)
+
+    not_difficult_gt_mask = gt_difficult == 0
+    gt_num = not_difficult_gt_mask.sum().item()
+    if gt_num == 0:
+        return 0, [], []
+
+    # 保留 max_iou 中属于 非difficult 目标的预测框，即应该去掉与 difficult gt 相匹配的预测框，不参与p-r计算
+    # 如果去掉与 difficult gt 对应的iou分数后，候选框的最大iou依然没有发生改变，则可认为此候选框不与difficult gt相匹配，应该保留
+    not_difficult_pb_mask = (ious[not_difficult_gt_mask].max(dim = 0)[0] == max_ious)
+    max_ious, max_ious_idx = max_ious[not_difficult_pb_mask], max_ious_idx[not_difficult_pb_mask]
+    if max_ious_idx.numel() == 0:
+        return gt_num, [], []
+
+    confidence_score = pred_scores.view(-1)[not_difficult_pb_mask]
+    tp_list = torch.zeros_like(max_ious)
+    for i in max_ious_idx[max_ious > iou_thresh].unique():
+        gt_mask = (max_ious > iou_thresh) * (max_ious_idx == i)
+        idx = (confidence_score * gt_mask.float()).argmax()
+        tp_list[idx] = 1
+
+    return gt_num, tp_list.tolist(), confidence_score.tolist()
+
+
+def calculate_pr(gt_num, tp_list, confidence_score):
+    """
+    calculate all p-r pairs among different score_thresh for one class, using `tp_list` and `confidence_score`.
 
     Args:
-        pred_boxes:
-        pred_scores:
-        gt_boxes:
-        gt_difficult:
-        score_range:
-        iou_thresh:
+        gt_num:
+        tp_list:
+        confidence_score:
 
     Returns:
         recall
         precision
 
     """
-    if gt_boxes.numel() == 0:
+    if gt_num == 0:
+        return [0], [0]
+    if isinstance(tp_list, (tuple, list)):
+        tp_list = np.array(tp_list)
+    if isinstance(confidence_score, (tuple, list)):
+        confidence_score = np.array(confidence_score)
+
+    assert len(tp_list) == len(confidence_score), "len(tp_list) and len(confidence_score) should be same"
+
+    if len(tp_list) == 0:
         return [0], [0]
 
-    from collections import Iterable
-    assert isinstance(score_range, Iterable), "`score_range` should be iterable"
+    sort_mask = np.argsort(-confidence_score)
+    tp_list = tp_list[sort_mask]
+    recall = np.cumsum(tp_list) / gt_num
+    precision = np.cumsum(tp_list) / (np.arange(len(tp_list)) + 1)
 
-    recall = []
-    precision = []
-    # 对于不同score阈值，计算相应的 p-r 值
-    for s in score_range:
-        pb = pred_boxes[pred_scores > s]
-        # 若在该score阈值下无对应的boxes，则 p-r 都为0
-        if pb.numel() == 0:
-            recall.append(0)
-            precision.append(0)
-            continue
-        # 否则计算所有预测框与gt之间的iou
-        ious = pb.new_zeros((len(gt_boxes), len(pb)))
-        for i in range(len(gt_boxes)):
-            gb = gt_boxes[i]
-            area_pb = (pb[:, 2] - pb[:, 0]) * (pb[:, 3] - pb[:, 1])
-            area_gb = (gb[2] - gb[0]) * (gb[3] - gb[1])
-            xx1 = pb[:, 0].clamp(min = gb[0].item())  # [N-1,]
-            yy1 = pb[:, 1].clamp(min = gb[1].item())
-            xx2 = pb[:, 2].clamp(max = gb[2].item())
-            yy2 = pb[:, 3].clamp(max = gb[3].item())
-            inter = (xx2 - xx1).clamp(min = 0) * (yy2 - yy1).clamp(min = 0)  # [N-1,]
-            ious[i] = inter / (area_pb + area_gb - inter)
-        # 每个预测框的最大iou所对应的gt记为其匹配的gt
-        max_ious, max_ious_idx = ious.max(dim = 0)
-
-        not_difficult = gt_difficult == 0
-        if not_difficult.sum() == 0:
-            continue
-        # 保留 max_iou 中属于 非difficult 目标的预测框，即应该去掉与 difficult gt 相匹配的预测框，不参与p-r计算
-        # 如果去掉与 difficult gt 对应的iou分数后，候选框的最大iou依然没有发生改变，则可认为此候选框不与difficult gt相匹配，应该保留
-        pb_mask = (ious[not_difficult].max(dim = 0)[0] == max_ious)
-        max_ious, max_ious_idx = max_ious[pb_mask], max_ious_idx[pb_mask]
-        if max_ious_idx.numel() == 0:
-            recall.append(0)
-            precision.append(0)
-            continue
-
-        tp = max_ious_idx[max_ious > iou_thresh].unique().numel()
-        recall.append(tp / not_difficult.sum().item())
-        precision.append(tp / max_ious_idx.numel())
-
-    return recall, precision
+    return recall.tolist(), precision.tolist()
 
 
 def voc_ap(rec, prec, use_07_metric = False):

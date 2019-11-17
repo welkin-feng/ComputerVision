@@ -295,7 +295,7 @@ class YOLOv2Postprocess(nn.Module):
         boxes_score = boxes_score.reshape(N, -1, 1)
         for i in range(N):
             if self.training:
-                mask = None
+                mask = (boxes_score[i] > 0.01).view(-1)
             else:
                 mask = (boxes_score[i] > self.box_iou_thresh).view(-1)
             cls.append(boxes_classes[i, mask])

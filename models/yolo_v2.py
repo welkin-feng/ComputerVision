@@ -157,7 +157,7 @@ class YOLOv2(GeneralizedYOLO):
         )
 
         postprocess = YOLOv2Postprocess(backbone.downsample_factor, num_classes, anchor_boxes, box_iou_thresh,
-                                        nms_threshold)
+                                        nms_threshold, **kwargs)
 
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
@@ -170,7 +170,7 @@ class YOLOv2(GeneralizedYOLO):
 
 class YOLOv2Postprocess(nn.Module):
 
-    def __init__(self, downsample_factor, num_classes, anchor_boxes, box_iou_thresh, nms_thresh):
+    def __init__(self, downsample_factor, num_classes, anchor_boxes, box_iou_thresh, nms_thresh, **kwargs):
         """
         Args:
             downsample_factor
@@ -189,6 +189,7 @@ class YOLOv2Postprocess(nn.Module):
         self.anchors = anchor_boxes
         self.box_iou_thresh = box_iou_thresh
         self.nms_thresh = nms_thresh
+        self.box_iou_thresh_train = kwargs.get('box_iou_thresh_train', 0.1)
 
     def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False, **kwargs):
         """
@@ -295,7 +296,7 @@ class YOLOv2Postprocess(nn.Module):
         boxes_score = boxes_score.reshape(N, -1, 1)
         for i in range(N):
             if self.training:
-                mask = (boxes_score[i] > 0.01).view(-1)
+                mask = (boxes_score[i] > self.box_iou_thresh_train).view(-1)
             else:
                 mask = (boxes_score[i] > self.box_iou_thresh).view(-1)
             cls.append(boxes_classes[i, mask])

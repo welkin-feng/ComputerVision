@@ -1,0 +1,7 @@
+2019.11.15
+- 如果得到的某些结果中全是0，那么很可能是计算过程中的某些变量为LongTensor，其会将小于1的数据全部取整为0。遇到这种情况要检查过程变量是否含有LongTensor
+- 项目中应该保持所有torch Tensor为Float类型(作为mask用的index除外)，在使用long()函数进行取整后，一定要使用float()函数转换成FloatTensor
+- torch中Bool和Long类型的sum()运算，得到的是LongTensor，所以需要通过float()或者item()进行转换
+
+2019.11.17
+- FloatTensor的向下取整函数是 floor()，Tensor.long() 转换成LongTensor时自动向下取整，但有LongTensor参与的运算，结果都是LongTensor，所以慎用

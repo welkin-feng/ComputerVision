@@ -294,7 +294,10 @@ class YOLOv2Postprocess(nn.Module):
         boxes_location = boxes_location.reshape(N, -1, 4)
         boxes_score = boxes_score.reshape(N, -1, 1)
         for i in range(N):
-            mask = (boxes_score[i] > self.box_iou_thresh).view(-1)
+            if self.training:
+                mask = None
+            else:
+                mask = (boxes_score[i] > self.box_iou_thresh).view(-1)
             cls.append(boxes_classes[i, mask])
             loc.append(boxes_location[i, mask])
             score.append(boxes_score[i, mask])
@@ -303,7 +306,7 @@ class YOLOv2Postprocess(nn.Module):
 
     def nms(self, boxes_cls_list, boxes_loc_list, boxes_score_list):
         label_list, loc, score = [], [], []
-        N = len(boxes_score_list)
+        N = len(boxes_cls_list)
         for i in range(N):
             if boxes_cls_list[i].numel() > 0:
                 # cls_probs = torch.softmax(boxes_cls_list[i], -1)

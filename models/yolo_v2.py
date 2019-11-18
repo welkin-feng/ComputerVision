@@ -261,23 +261,23 @@ class YOLOv2Postprocess(nn.Module):
         stride = self.num_classes + 5
         assert C == num_anchors * stride, "the channels of boxes_offset can not match the number of anchors"
 
-        boxes_offset = boxes_offset.permute(0, 2, 3, 1)  # [N, H, W, C]
-        boxes_offset = boxes_offset.reshape(N, H, W, num_anchors, stride)  # [N, H, W, 5, 25]
+        boxes_offset = boxes_offset.permute(0, 3, 2, 1)  # [N, W, H, C]
+        boxes_offset = boxes_offset.reshape(N, W, H, num_anchors, stride)  # [N, W, H, 5, 25]
 
-        proposed_boxes_classes = boxes_offset[..., :self.num_classes]  # [N, H, W, 5, 20]
-        proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])  # [N, H, W, 5, 1]
+        proposed_boxes_classes = boxes_offset[..., :self.num_classes]  # [N, W, H, 5, 20]
+        proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])  # [N, W, H, 5, 1]
 
-        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])  # [N, H, W, 5, 2]
-        boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]  # [N, H, W, 5, 2]
+        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])  # [N, W, H, 5, 2]
+        boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]  # [N, W, H, 5, 2]
 
         prior_anchor_losses = 0
         if get_prior_anchor_loss:
             prior_anchor_losses = F.mse_loss(boxes_offset_xy, torch.zeros_like(boxes_offset_xy) + 0.5) + \
                                   F.mse_loss(boxes_offset_wh, torch.zeros_like(boxes_offset_wh))
 
-        x_grid = torch.arange(W).repeat(H, 1).to(boxes_offset)
-        y_grid = torch.arange(H).unsqueeze(1).repeat(1, W).to(boxes_offset)
-        anchors_xy = torch.stack((x_grid, y_grid), dim = -1).unsqueeze(-2).to(boxes_offset)  # [H, W, 1, 2]
+        x_grid = torch.arange(H).unsqueeze(1).repeat(1, W).to(boxes_offset)
+        y_grid = torch.arange(W).repeat(H, 1).to(boxes_offset)
+        anchors_xy = torch.stack((x_grid, y_grid), dim = -1).unsqueeze(-2).to(boxes_offset)  # [W, H, 1, 2]
         anchors_wh = boxes_offset.new(self.anchors)  # [5, 2]
 
         # 从特征图中的坐标转换成原图中的坐标
@@ -350,10 +350,10 @@ class YOLOv2Postprocess(nn.Module):
         total_loss = sum(costs)
 
         Args:
-            proposed_boxes_classes
-            proposed_boxes_xywh
-            proposed_boxes_score
-            targets
+            proposed_boxes_classes (Tensor[N, W, H, 5, 20])
+            proposed_boxes_xywh (Tensor[N, W, H, 5, 4])
+            proposed_boxes_score (Tensor[N, W, H, 5, 1])
+            targets (List[Dict[Tensor[M, 4], Tensor[M]]])
             image_sizes
 
         Returns:
@@ -365,8 +365,6 @@ class YOLOv2Postprocess(nn.Module):
         # transform xywh to xyxy
         proposed_boxes_xyxy = self.bboxes_transform(proposed_boxes_xywh, image_sizes)
 
-        proposed_boxes_xywh = proposed_boxes_xywh / self.size_divisible
-
         cal_coord_scale = coord_scale is None
 
         for i in range(len(targets)):
@@ -374,7 +372,7 @@ class YOLOv2Postprocess(nn.Module):
             t_labels = targets[i]['labels']
             image_size = image_sizes[i]
             p_boxes_cls = proposed_boxes_classes[i]
-            p_boxes_xywh = proposed_boxes_xywh[i]
+            p_boxes_xywh = proposed_boxes_xywh[i] / self.size_divisible
             p_boxes_score = proposed_boxes_score[i]
 
             # 计算 背景 损失
@@ -387,8 +385,8 @@ class YOLOv2Postprocess(nn.Module):
                 coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
             t_boxes = t_boxes / self.size_divisible
 
-            # 得到每个gt落在哪个cell
-            t_box_cell_idx = t_boxes[:, :2].long()  # [t_boxes.shape[0], 2]
+            # 得到每个gt落在哪个cell，坐标为(x_idx, y_idx)，对应shape为[W, H, ...]的Tensor
+            t_box_cell_idx = t_boxes[:, :2].long()  # [t_boxes.shape[0], 2] -> [M, (x_idx, y_idx)]
             # 得到与每个gt匹配的anchor的idx
             t_box_correspond_anchor_idx = self._get_matched_anchor_idx(t_boxes)
             # 取与gt匹配的原始anchor对应的预测框

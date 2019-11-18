@@ -5,3 +5,8 @@
 
 2019.11.17
 - FloatTensor的向下取整函数是 floor()，Tensor.long() 转换成LongTensor时自动向下取整，但有LongTensor参与的运算，结果都是LongTensor，所以慎用
+- numpy中用sort()和argsort()进行排序，如果需要降序排序，使用np.sort(-A)
+
+2019.11.18
+- torch中网络的输入默认为[N, C, H, W]，其中W是图片的横坐标、H是纵坐标。对于(x_idx, y_idx)形式的索引，应该对Tensor进行permute()转置，或者索引更改为(y_idx, x_idx)形式
+- yolo_v2中计算每个gt所匹配的anchor的索引时，需要注意上述问题

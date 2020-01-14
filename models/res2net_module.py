@@ -11,15 +11,13 @@ import math
 
 import torch
 from torch import nn
-import torch.utils.model_zoo as model_zoo
-import torch.nn.functional as F
 
 BatchNorm = nn.BatchNorm2d
 
 __author__ = 'Welkin'
 __date__ = '2020/1/15 01:09'
 
-from .se_module import SELayer
+from models.se_module import SELayer
 
 
 class Bottle2neck(nn.Module):
@@ -196,7 +194,7 @@ class SEBottle2neck(nn.Module):
     """
     expansion = 2
 
-    def __init__(self, inplanes, planes, stride = 1, dilation = 1, baseWidth = 28, scale = 4, reduction=16):
+    def __init__(self, inplanes, planes, stride = 1, dilation = 1, baseWidth = 28, scale = 4, reduction = 16):
         """ Constructor
         Args:
             inplanes: input channel dimensionality
@@ -282,7 +280,7 @@ class SEBottle2neckX(nn.Module):
     expansion = 2
     cardinality = 8
 
-    def __init__(self, inplanes, planes, stride = 1, dilation = 1, scale = 4, reduction=16):
+    def __init__(self, inplanes, planes, stride = 1, dilation = 1, scale = 4, reduction = 16):
         """ Constructor
         Args:
             inplanes: input channel dimensionality

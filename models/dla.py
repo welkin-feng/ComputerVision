@@ -5,9 +5,9 @@ import math
 
 import torch
 from torch import nn
-import torch.utils.model_zoo as model_zoo
+from torch.utils import model_zoo
 
-from .res2net_module import Bottle2neck, Bottle2neckX, SEBottle2neck, SEBottle2neckX
+from models.res2net_module import Bottle2neck, Bottle2neckX, SEBottle2neck, SEBottle2neckX
 
 BatchNorm = nn.BatchNorm2d
 

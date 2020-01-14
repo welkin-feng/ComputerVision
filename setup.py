@@ -11,7 +11,8 @@ File Name:  setup.py.py
 __author__ = 'Welkin'
 __date__ = '2020/1/15 02:23'
 
-from setuptools import setup, find_packages
+from distutils.core import setup
+from setuptools import find_packages
 
 setup(name = 'cvmodels',
       version = '0.1',

@@ -11,13 +11,14 @@ import math
 
 import torch
 from torch import nn
+from models.se_module import SELayer
 
 BatchNorm = nn.BatchNorm2d
 
 __author__ = 'Welkin'
 __date__ = '2020/1/15 01:09'
 
-from models.se_module import SELayer
+__all__ = ['Bottle2neck', 'Bottle2neckX', 'SEBottle2neck', 'SEBottle2neckX']
 
 
 class Bottle2neck(nn.Module):

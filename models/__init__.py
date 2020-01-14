@@ -20,7 +20,9 @@ from .mobilenet_v1 import *
 from .resnet import *
 from .yolo_v1 import *
 from .yolo_v2 import *
-
+from .se_module import *
+from .res2net_module import *
+from .dla import *
 
 def get_model(config):
     return globals()[config.architecture](**config)

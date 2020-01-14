@@ -14,6 +14,7 @@ __date__ = '2019/10/11 15:14'
 import voc_util
 
 from trainer import DetectionTrainer, ClassificationTrainer
+from util import get_learning_rate_scheduler
 
 
 class YOLOTrainer(DetectionTrainer):
@@ -25,29 +26,21 @@ class YOLOTrainer(DetectionTrainer):
             return
         return super().test(test_loader)
 
-    def _calculate_acc(self, outputs, targets, train_mode = True):
-        if train_mode and self.epoch < 10:
-            return
-        super()._calculate_acc(outputs, targets, train_mode)
-
     def _get_model_outputs(self, inputs, targets, train_mode = True):
         if train_mode:
-            if self.epoch < 6:
-                kwargs = {'class_scale': 1, 'coord_scale': 0, 'object_scale': 0,
-                          'noobject_scale': 0, 'prior_scale': 0}
-                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = False, **kwargs)
-            # elif self.epoch < 10:
-            #     kwargs = {'class_scale': 1, 'coord_scale': 0, 'object_scale': 0,
-            #               'noobject_scale': 0, 'prior_scale': 0.01}
-            #     outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True, **kwargs)
-            elif self.epoch < 15:
-                kwargs = {'class_scale': 1, 'coord_scale': 0, 'object_scale': 5,
-                          'noobject_scale': 1, 'prior_scale': 0.01}
-                outputs, loss = self.net(inputs, targets, get_prior_anchor_loss = True, **kwargs)
-            else:
-                # kwargs = {'class_scale': 1, 'coord_scale': None, 'object_scale': 5,
-                #           'noobject_scale': 1, 'prior_scale': 0.01}
-                outputs, loss = self.net(inputs, targets)
+            kwargs = {'class_scale': 1, 'coord_scale': None, 'object_scale': 5,
+                      'noobject_scale': 1, 'prior_scale': 0.1}
+            get_prior_anchor_loss = False
+            if self.epoch < 10:
+                get_prior_anchor_loss = True
+
+            if self.epoch in [1, ]:
+                for i, param_group in enumerate(self.optimizer.param_groups):
+                    param_group['lr'] = self.config.lr_scheduler.base_lr
+                self.lr_scheduler = get_learning_rate_scheduler(self.optimizer, self.epoch, self.config)
+
+            kwargs['get_prior_anchor_loss'] = get_prior_anchor_loss
+            outputs, loss = self.net(inputs, targets, **kwargs)
         else:
             outputs, loss = self.net(inputs)
 

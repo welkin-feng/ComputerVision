@@ -11,7 +11,7 @@ from .res2net_module import Bottle2neck, Bottle2neckX, SEBottle2neck, SEBottle2n
 
 BatchNorm = nn.BatchNorm2d
 
-__all__ = ['res2net_dla60']
+__all__ = ['res2net_dla60', 'res2next_dla60', 'se_res2net_dla60', 'se_res2next_dla60']
 
 model_urls = {
     'res2net_dla60': 'http://data.kaizhao.net/projects/res2net/pretrained/res2net_dla60_4s-d88db7f9.pth',

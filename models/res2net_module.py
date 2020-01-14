@@ -11,7 +11,7 @@ import math
 
 import torch
 from torch import nn
-from models.se_module import SELayer
+from .se_module import SELayer
 
 BatchNorm = nn.BatchNorm2d
 

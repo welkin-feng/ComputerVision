@@ -25,14 +25,18 @@ BN_MOMENTUM = 0.1
 # logger = logging.getLogger(__name__)
 
 hrnet_ocr_w48_cfg = {
-    'STAGE1': {'NUM_MODULES': 1, 'NUM_BRANCHES': 1, 'BLOCK': 'BOTTLENECK', 'NUM_BLOCKS': [4, ], 'NUM_CHANNELS': [64, ],
-               'FUSE_METHOD': 'SUM'},
-    'STAGE2': {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4], 'NUM_CHANNELS': [48, 96],
-               'FUSE_METHOD': 'SUM'},
-    'STAGE3': {'NUM_MODULES': 4, 'NUM_BRANCHES': 3, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4, 4],
-               'NUM_CHANNELS': [48, 96, 192], 'FUSE_METHOD': 'SUM'},
-    'STAGE4': {'NUM_MODULES': 3, 'NUM_BRANCHES': 4, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4, 4, 4],
-               'NUM_CHANNELS': [48, 96, 192, 384], 'FUSE_METHOD': 'SUM'},
+    'EXTRA': {'STAGE1': {'NUM_MODULES': 1, 'NUM_BRANCHES': 1, 'BLOCK': 'BOTTLENECK', 'NUM_BLOCKS': [4, ],
+                         'NUM_CHANNELS': [64, ],
+                         'FUSE_METHOD': 'SUM'},
+              'STAGE2': {'NUM_MODULES': 1, 'NUM_BRANCHES': 2, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4],
+                         'NUM_CHANNELS': [48, 96],
+                         'FUSE_METHOD': 'SUM'},
+              'STAGE3': {'NUM_MODULES': 4, 'NUM_BRANCHES': 3, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4, 4],
+                         'NUM_CHANNELS': [48, 96, 192], 'FUSE_METHOD': 'SUM'},
+              'STAGE4': {'NUM_MODULES': 3, 'NUM_BRANCHES': 4, 'BLOCK': 'BASIC', 'NUM_BLOCKS': [4, 4, 4, 4],
+                         'NUM_CHANNELS': [48, 96, 192, 384], 'FUSE_METHOD': 'SUM'}, },
+    'OCR': {'MID_CHANNELS': 512,
+            'KEY_CHANNELS': 256}
 }
 
 
@@ -382,9 +386,9 @@ blocks_dict = {'BASIC': BasicBlock, 'BOTTLENECK': Bottleneck}
 
 class HighResolutionNet(nn.Module):
 
-    def __init__(self, extra_cfg, num_heads, ocr_mid_channels, ocr_key_channels, **kwargs):
+    def __init__(self, config, num_heads, **kwargs):
         global ALIGN_CORNERS
-        extra = extra_cfg
+        extra = config['EXTRA']
         super(HighResolutionNet, self).__init__()
 
         # stem net
@@ -423,8 +427,8 @@ class HighResolutionNet(nn.Module):
         self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output = True)
 
         last_inp_channels = np.int(np.sum(pre_stage_channels))
-        # ocr_mid_channels = config.MODEL.OCR.MID_CHANNELS
-        # ocr_key_channels = config.MODEL.OCR.KEY_CHANNELS
+        ocr_mid_channels = config['OCR']['MID_CHANNELS']
+        ocr_key_channels = config['OCR']['KEY_CHANNELS']
 
         self.conv3x3_ocr = nn.Sequential(
             nn.Conv2d(last_inp_channels, ocr_mid_channels, kernel_size = 3, stride = 1, padding = 1),
@@ -604,13 +608,13 @@ class HighResolutionNet(nn.Module):
             # logger.info(
             #     '=> loading {} pretrained model {}'.format(k, pretrained))
             model_dict.update(pretrained_dict)
-            self.load_state_dict(model_dict)
+            self.load_state_dict(model_dict, strict = False)
         elif pretrained:
             raise RuntimeError('No such file {}'.format(pretrained))
 
 
-def get_seg_model(cfg, **kwargs):
-    model = HighResolutionNet(cfg, **kwargs)
-    model.init_weights(cfg.MODEL.PRETRAINED)
+def get_seg_model(cfg, num_heads, pretrained_path = '', **kwargs):
+    model = HighResolutionNet(cfg, num_heads, **kwargs)
+    model.init_weights(pretrained_path)
 
     return model

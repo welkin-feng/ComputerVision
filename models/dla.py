@@ -207,6 +207,7 @@ def res2next_dla60(pretrained = None, **kwargs):
         model.load_pretrained_model('res2next_dla60')
     return model
 
+
 def se_res2net_dla60(pretrained = None, **kwargs):
     SEBottle2neck.expansion = 2
     model = DLA([1, 1, 1, 2, 3, 1],
@@ -225,6 +226,7 @@ def se_res2next_dla60(pretrained = None, **kwargs):
     if pretrained:
         model.load_pretrained_model('res2next_dla60')
     return model
+
 
 if __name__ == '__main__':
     images = torch.rand(1, 3, 224, 224).cuda(0)

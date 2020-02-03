@@ -23,6 +23,7 @@ from .yolo_v2 import *
 from .se_module import *
 from .res2net_module import *
 from .dla import *
+from .hrnet import *
 
 def get_model(config):
     return globals()[config.architecture](**config)

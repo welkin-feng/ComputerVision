@@ -40,6 +40,11 @@ hrnet_ocr_w48_cfg = {
 }
 
 
+def conv3x3(in_planes, out_planes, stride = 1):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
+
+
 class ModuleHelper:
 
     @staticmethod
@@ -49,11 +54,6 @@ class ModuleHelper:
     @staticmethod
     def BatchNorm2d(*args, **kwargs):
         return BatchNorm2d
-
-
-def conv3x3(in_planes, out_planes, stride = 1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
 
 
 class SpatialGather_Module(nn.Module):
@@ -176,9 +176,7 @@ class SpatialOCR_Module(nn.Module):
 
     def forward(self, feats, proxy_feats):
         context = self.object_context_block(feats, proxy_feats)
-
         output = self.conv_bn_dropout(torch.cat([context, feats], 1))
-
         return output
 
 
@@ -221,13 +219,10 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size = 1, bias = False)
         self.bn1 = BatchNorm2d(planes, momentum = BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size = 3, stride = stride,
-                               padding = 1, bias = False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
         self.bn2 = BatchNorm2d(planes, momentum = BN_MOMENTUM)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size = 1,
-                               bias = False)
-        self.bn3 = BatchNorm2d(planes * self.expansion,
-                               momentum = BN_MOMENTUM)
+        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size = 1, bias = False)
+        self.bn3 = BatchNorm2d(planes * self.expansion, momentum = BN_MOMENTUM)
         self.relu = nn.ReLU(inplace = relu_inplace)
         self.downsample = downsample
         self.stride = stride
@@ -259,8 +254,7 @@ class HighResolutionModule(nn.Module):
     def __init__(self, num_branches, blocks, num_blocks, num_inchannels,
                  num_channels, fuse_method, multi_scale_output = True):
         super(HighResolutionModule, self).__init__()
-        self._check_branches(
-            num_branches, blocks, num_blocks, num_inchannels, num_channels)
+        self._check_branches(num_branches, blocks, num_blocks, num_inchannels, num_channels)
 
         self.num_inchannels = num_inchannels
         self.fuse_method = fuse_method
@@ -268,8 +262,7 @@ class HighResolutionModule(nn.Module):
 
         self.multi_scale_output = multi_scale_output
 
-        self.branches = self._make_branches(
-            num_branches, blocks, num_blocks, num_channels)
+        self.branches = self._make_branches(num_branches, blocks, num_blocks, num_channels)
         self.fuse_layers = self._make_fuse_layers()
         self.relu = nn.ReLU(inplace = relu_inplace)
 
@@ -291,11 +284,9 @@ class HighResolutionModule(nn.Module):
 
     def _make_one_branch(self, branch_index, block, num_blocks, num_channels, stride = 1):
         downsample = None
-        if stride != 1 or \
-                self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
+        if stride != 1 or self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.num_inchannels[branch_index],
-                          num_channels[branch_index] * block.expansion,
+                nn.Conv2d(self.num_inchannels[branch_index], num_channels[branch_index] * block.expansion,
                           kernel_size = 1, stride = stride, bias = False),
                 BatchNorm2d(num_channels[branch_index] * block.expansion, momentum = BN_MOMENTUM),
             )
@@ -310,10 +301,8 @@ class HighResolutionModule(nn.Module):
 
     def _make_branches(self, num_branches, block, num_blocks, num_channels):
         branches = []
-
         for i in range(num_branches):
             branches.append(self._make_one_branch(i, block, num_blocks, num_channels))
-
         return nn.ModuleList(branches)
 
     def _make_fuse_layers(self):

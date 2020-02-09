@@ -104,18 +104,14 @@ class DLA(nn.Module):
         self.channels = channels
         self.return_levels = return_levels
         self.num_classes = num_classes
-        self.base_layer = nn.Sequential(
-            nn.Conv2d(3, channels[0], kernel_size = 7, stride = 1,
-                      padding = 3, bias = False),
-            BatchNorm(channels[0]),
-            nn.ReLU(inplace = True))
-        self.level0 = self._make_conv_level(
-            channels[0], channels[0], levels[0])
-        self.level1 = self._make_conv_level(
-            channels[0], channels[1], levels[1], stride = 2)
+        self.base_layer = nn.Sequential(nn.Conv2d(3, channels[0], kernel_size = 7,
+                                                  stride = 1, padding = 3, bias = False),
+                                        BatchNorm(channels[0]),
+                                        nn.ReLU(inplace = True))
+        self.level0 = self._make_conv_level(channels[0], channels[0], levels[0])
+        self.level1 = self._make_conv_level(channels[0], channels[1], levels[1], stride = 2)
         self.level2 = Tree(levels[2], block, channels[1], channels[2], 2,
-                           level_root = False,
-                           root_residual = residual_root)
+                           level_root = False, root_residual = residual_root)
         self.level3 = Tree(levels[3], block, channels[2], channels[3], 2,
                            level_root = True, root_residual = residual_root)
         self.level4 = Tree(levels[4], block, channels[3], channels[4], 2,
@@ -140,8 +136,8 @@ class DLA(nn.Module):
         if stride != 1 or inplanes != planes:
             downsample = nn.Sequential(
                 nn.MaxPool2d(stride, stride = stride),
-                nn.Conv2d(inplanes, planes,
-                          kernel_size = 1, stride = 1, bias = False),
+                nn.Conv2d(inplanes, planes, kernel_size = 1,
+                          stride = 1, bias = False),
                 BatchNorm(planes),
             )
 

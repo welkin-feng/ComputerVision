@@ -76,6 +76,43 @@ class HRNetClassification(HighResolutionNet):
 
         self.classifier = nn.Linear(2048, 1000)
 
+    def _make_head(self, pre_stage_channels):
+        head_block = Bottleneck
+        head_channels = [32, 64, 128, 256]
+
+        # Increasing the #channels on each resolution
+        # from C, 2C, 4C, 8C to 128, 256, 512, 1024
+        incre_modules = []
+        for i, channels in enumerate(pre_stage_channels):
+            incre_module = self._make_layer(head_block, channels, head_channels[i], 1, stride = 1)
+            incre_modules.append(incre_module)
+        incre_modules = nn.ModuleList(incre_modules)
+
+        # downsampling modules
+        downsamp_modules = []
+        for i in range(len(pre_stage_channels) - 1):
+            in_channels = head_channels[i] * head_block.expansion
+            out_channels = head_channels[i + 1] * head_block.expansion
+
+            downsamp_module = nn.Sequential(
+                nn.Conv2d(in_channels = in_channels, out_channels = out_channels,
+                          kernel_size = 3, stride = 2, padding = 1),
+                nn.BatchNorm2d(out_channels, momentum = BN_MOMENTUM),
+                nn.ReLU(inplace = True)
+            )
+
+            downsamp_modules.append(downsamp_module)
+        downsamp_modules = nn.ModuleList(downsamp_modules)
+
+        final_layer = nn.Sequential(
+            nn.Conv2d(in_channels = head_channels[3] * head_block.expansion, out_channels = 2048,
+                      kernel_size = 1, stride = 1, padding = 0),
+            nn.BatchNorm2d(2048, momentum = BN_MOMENTUM),
+            nn.ReLU(inplace = True)
+        )
+
+        return incre_modules, downsamp_modules, final_layer
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
@@ -124,26 +161,6 @@ class HRNetClassification(HighResolutionNet):
         y = self.classifier(y)
 
         return y
-
-    def init_weights(self, pretrained = '', ):
-        logger.info('=> init weights from normal distribution')
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode = 'fan_out', nonlinearity = 'relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        if os.path.isfile(pretrained):
-            pretrained_dict = torch.load(pretrained)
-            logger.info('=> loading pretrained model {}'.format(pretrained))
-            model_dict = self.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_dict.items()
-                               if k in model_dict.keys()}
-            for k, _ in pretrained_dict.items():
-                logger.info(
-                    '=> loading {} pretrained model {}'.format(k, pretrained))
-            model_dict.update(pretrained_dict)
-            self.load_state_dict(model_dict)
 
 
 def get_cls_net(config, **kwargs):

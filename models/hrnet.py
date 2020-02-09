@@ -92,43 +92,6 @@ class HighResolutionNet(nn.Module):
         self.transition3 = self._make_transition_layer(pre_stage_channels, num_channels)
         self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output = True)
 
-    def _make_head(self, pre_stage_channels):
-        head_block = Bottleneck
-        head_channels = [32, 64, 128, 256]
-
-        # Increasing the #channels on each resolution
-        # from C, 2C, 4C, 8C to 128, 256, 512, 1024
-        incre_modules = []
-        for i, channels in enumerate(pre_stage_channels):
-            incre_module = self._make_layer(head_block, channels, head_channels[i], 1, stride = 1)
-            incre_modules.append(incre_module)
-        incre_modules = nn.ModuleList(incre_modules)
-
-        # downsampling modules
-        downsamp_modules = []
-        for i in range(len(pre_stage_channels) - 1):
-            in_channels = head_channels[i] * head_block.expansion
-            out_channels = head_channels[i + 1] * head_block.expansion
-
-            downsamp_module = nn.Sequential(
-                nn.Conv2d(in_channels = in_channels, out_channels = out_channels,
-                          kernel_size = 3, stride = 2, padding = 1),
-                nn.BatchNorm2d(out_channels, momentum = BN_MOMENTUM),
-                nn.ReLU(inplace = True)
-            )
-
-            downsamp_modules.append(downsamp_module)
-        downsamp_modules = nn.ModuleList(downsamp_modules)
-
-        final_layer = nn.Sequential(
-            nn.Conv2d(in_channels = head_channels[3] * head_block.expansion, out_channels = 2048,
-                      kernel_size = 1, stride = 1, padding = 0),
-            nn.BatchNorm2d(2048, momentum = BN_MOMENTUM),
-            nn.ReLU(inplace = True)
-        )
-
-        return incre_modules, downsamp_modules, final_layer
-
     def _make_transition_layer(self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
         num_branches_pre = len(num_channels_pre_layer)

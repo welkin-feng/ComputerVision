@@ -62,8 +62,8 @@ class TanhLR(_LRScheduler):
         else:
             self.warmup_steps = [1 for _ in self.base_lrs]
 
-    def get_lr(self, epoch = None):
-        t = epoch
+    def get_lr(self):
+        t = self.last_epoch
         if t < self.warmup_t:
             lrs = [self.warmup_lr_init + t * s for s in self.warmup_steps]
         else:
@@ -85,10 +85,8 @@ class TanhLR(_LRScheduler):
                 lr_max_values = [v * gamma for v in self.base_lrs]
 
                 tr = t_curr / t_i
-                lrs = [
-                    lr_min + 0.5 * (lr_max - lr_min) * (1 - math.tanh(self.lb * (1. - tr) + self.ub * tr))
-                    for lr_max in lr_max_values
-                ]
+                lrs = [lr_min + 0.5 * (lr_max - lr_min) * (1 - math.tanh(self.lb * (1. - tr) + self.ub * tr))
+                    for lr_max in lr_max_values]
             else:
                 lrs = [self.lr_min * (self.decay_rate ** self.cycle_limit) for _ in self.base_lrs]
         return lrs

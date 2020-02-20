@@ -12,3 +12,4 @@ __author__ = 'Welkin'
 __date__ = '2020/2/9 21:59'
 
 from .ranger import Ranger
+from .swa import SWA

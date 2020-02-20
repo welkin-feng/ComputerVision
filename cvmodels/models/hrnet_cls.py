@@ -11,7 +11,6 @@ File Name:  hrnet_cls.py
 __author__ = 'Welkin'
 __date__ = '2020/2/3 18:17'
 
-import os
 import logging
 
 import torch
@@ -19,8 +18,8 @@ import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
-from models.hrnet_module import BasicBlock, Bottleneck, HighResolutionModule
-from models.hrnet import HighResolutionNet
+from cvmodels.models import BasicBlock, Bottleneck
+from cvmodels.models import HighResolutionNet
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)

@@ -12,10 +12,10 @@ __author__ = 'Welkin'
 __date__ = '2019/10/11 15:09'
 
 import torch.nn as nn
-import cifar_util
+from cvmodels import cifar_util
 
 from torchvision.transforms import transforms
-from trainer import Trainer
+from cvmodels.trainer import Trainer
 
 
 class ClassificationTrainer(Trainer):

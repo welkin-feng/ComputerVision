@@ -21,8 +21,8 @@ from torch.backends import cudnn
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
 
-from models import *
-from util import *
+from cvmodels.models import *
+from cvmodels.util import *
 
 
 class Trainer(object):

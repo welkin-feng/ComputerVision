@@ -11,10 +11,10 @@ File Name:  yolo_trainer.py
 __author__ = 'Welkin'
 __date__ = '2019/10/11 15:14'
 
-import voc_util
+from cvmodels import voc_util
 
-from trainer import DetectionTrainer, ClassificationTrainer
-from util import get_learning_rate_scheduler
+from cvmodels.trainer import DetectionTrainer, ClassificationTrainer
+from cvmodels.util import get_learning_rate_scheduler
 
 
 class YOLOTrainer(DetectionTrainer):

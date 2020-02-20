@@ -12,9 +12,9 @@ __author__ = 'Welkin'
 __date__ = '2019/10/11 15:12'
 
 import torch
-import voc_util
+from cvmodels import voc_util
 
-from trainer import Trainer
+from cvmodels.trainer import Trainer
 
 
 class DetectionTrainer(Trainer):

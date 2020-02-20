@@ -4,7 +4,7 @@
 
 Project Name:   ComputerVision 
 
-File Name:  train_detector.py
+File Name:  train_classifier.py
 
 """
 
@@ -12,11 +12,11 @@ __author__ = 'Welkin'
 __date__ = '2019/10/11 15:05'
 
 import argparse
-from trainer import DetectionTrainer
+from cvmodels.trainer import ClassificationTrainer
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description = 'PyTorch VOC Dataset Training')
+    parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
     parser.add_argument('--work-path', required = True, type = str)
     parser.add_argument('--resume', action = 'store_true',
                         help = 'resume from checkpoint')
@@ -24,7 +24,7 @@ def parse_args():
 
 
 def main(args):
-    trainer = DetectionTrainer(args.work_path, args.resume)
+    trainer = ClassificationTrainer(args.work_path, args.resume)
     trainer.start_training()
 
 

@@ -86,7 +86,7 @@ class TanhLR(_LRScheduler):
 
                 tr = t_curr / t_i
                 lrs = [lr_min + 0.5 * (lr_max - lr_min) * (1 - math.tanh(self.lb * (1. - tr) + self.ub * tr))
-                    for lr_max in lr_max_values]
+                       for lr_max in lr_max_values]
             else:
                 lrs = [self.lr_min * (self.decay_rate ** self.cycle_limit) for _ in self.base_lrs]
         return lrs

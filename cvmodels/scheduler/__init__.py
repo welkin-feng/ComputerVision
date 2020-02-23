@@ -12,3 +12,4 @@ __author__ = 'Welkin'
 __date__ = '2020/2/12 19:37'
 
 from .tanh_lr import TanhLR
+from .plateau_lr import PlateauLR

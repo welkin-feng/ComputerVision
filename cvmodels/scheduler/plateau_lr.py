@@ -21,11 +21,18 @@ class PlateauLR(ReduceLROnPlateau):
         self.use_warm_up = False
         self.warm_up_lr = self.init_lr
         self.warm_up_steps = warm_up_steps
+        # self.step(True)
         if self.warm_up_steps > 0:
             self.use_warm_up = True
             self.warm_up_lr = [lr * warm_up_lr_factor for lr in self.init_lr]
             for param_group, lr in zip(self.optimizer.param_groups, self.warm_up_lr):
                 param_group['lr'] = lr
+            self._last_lr = self.warm_up_lr
+
+    def get_last_lr(self):
+        """ Return last computed learning rate by current scheduler.
+        """
+        return self._last_lr
 
     def step(self, metrics, epoch = None):
         if epoch is None:

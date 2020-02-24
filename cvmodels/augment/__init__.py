@@ -13,3 +13,4 @@ __date__ = '2020/2/11 12:33'
 
 
 from .autoaugment import ImageNetPolicy, CIFAR10Policy, SVHNPolicy
+from .fast_autoaugment import FastAutoAugmentImageNet, FastAutoAugmentSVHN

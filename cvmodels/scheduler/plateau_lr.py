@@ -43,12 +43,11 @@ class PlateauLR(ReduceLROnPlateau):
             self.use_warm_up = True
             for param_group, lr in zip(self.optimizer.param_groups, self.warm_up_lr):
                 param_group['lr'] = lr
+        elif self.use_warm_up:
+            self.use_warm_up = False
+            for param_group, lr in zip(self.optimizer.param_groups, self.init_lr):
+                param_group['lr'] = lr
         else:
-            if self.use_warm_up:
-                self.use_warm_up = False
-                for param_group, lr in zip(self.optimizer.param_groups, self.init_lr):
-                    param_group['lr'] = lr
-
             if isinstance(metrics, bool):
                 is_best = metrics
             else:

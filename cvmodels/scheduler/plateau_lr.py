@@ -48,7 +48,7 @@ class PlateauLR(ReduceLROnPlateau):
             for param_group, lr in zip(self.optimizer.param_groups, self.init_lr):
                 param_group['lr'] = lr
         else:
-            if isinstance(metrics, bool):
+            if metrics == True or metrics == False:
                 is_best = metrics
             else:
                 # convert `metrics` to float, in case it's a zero-dim Tensor

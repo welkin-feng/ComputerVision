@@ -6,120 +6,119 @@ from PIL import Image
 random_mirror = True
 
 
-def ShearX(img, v):  # [-0.3, 0.3]
+def ShearX(img, v, fillcolor = None):  # [-0.3, 0.3]
     assert -0.3 <= v <= 0.3
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0), fillcolor = fillcolor)
 
 
-def ShearY(img, v):  # [-0.3, 0.3]
+def ShearY(img, v, fillcolor = None):  # [-0.3, 0.3]
     assert -0.3 <= v <= 0.3
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, v, 1, 0))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, v, 1, 0), fillcolor = fillcolor)
 
 
-def TranslateX(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateX(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert -0.45 <= v <= 0.45
     if random_mirror and random.random() > 0.5:
         v = -v
     v = v * img.size[0]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor = fillcolor)
 
 
-def TranslateY(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateY(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert -0.45 <= v <= 0.45
     if random_mirror and random.random() > 0.5:
         v = -v
     v = v * img.size[1]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor = fillcolor)
 
 
-def TranslateXAbs(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateXAbs(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert 0 <= v <= 10
     if random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor = fillcolor)
 
 
-def TranslateYAbs(img, v):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateYAbs(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert 0 <= v <= 10
     if random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v))
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor = fillcolor)
 
 
-def Rotate(img, v):  # [-30, 30]
+def Rotate(img, v, fillcolor = None):  # [-30, 30]
     assert -30 <= v <= 30
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.rotate(v)
+    return img.rotate(v, fillcolor = fillcolor)
 
 
-def AutoContrast(img, _):
+def AutoContrast(img, _, **kwargs):
     return PIL.ImageOps.autocontrast(img)
 
 
-def Invert(img, _):
+def Invert(img, _, **kwargs):
     return PIL.ImageOps.invert(img)
 
 
-def Equalize(img, _):
+def Equalize(img, _, **kwargs):
     return PIL.ImageOps.equalize(img)
 
 
-def Flip(img, _):  # not from the paper
+def Flip(img, _, **kwargs):  # not from the paper
     return PIL.ImageOps.mirror(img)
 
 
-def Solarize(img, v):  # [0, 256]
+def Solarize(img, v, **kwargs):  # [0, 256]
     assert 0 <= v <= 256
     return PIL.ImageOps.solarize(img, v)
 
 
-def Posterize(img, v):  # [4, 8]
+def Posterize(img, v, **kwargs):  # [4, 8]
     assert 4 <= v <= 8
     v = int(v)
     return PIL.ImageOps.posterize(img, v)
 
 
-def Posterize2(img, v):  # [0, 4]
+def Posterize2(img, v, **kwargs):  # [0, 4]
     assert 0 <= v <= 4
     v = int(v)
     return PIL.ImageOps.posterize(img, v)
 
 
-def Contrast(img, v):  # [0.1,1.9]
+def Contrast(img, v, **kwargs):  # [0.1,1.9]
     assert 0.1 <= v <= 1.9
     return PIL.ImageEnhance.Contrast(img).enhance(v)
 
 
-def Color(img, v):  # [0.1,1.9]
+def Color(img, v, **kwargs):  # [0.1,1.9]
     assert 0.1 <= v <= 1.9
     return PIL.ImageEnhance.Color(img).enhance(v)
 
 
-def Brightness(img, v):  # [0.1,1.9]
+def Brightness(img, v, **kwargs):  # [0.1,1.9]
     assert 0.1 <= v <= 1.9
     return PIL.ImageEnhance.Brightness(img).enhance(v)
 
 
-def Sharpness(img, v):  # [0.1,1.9]
+def Sharpness(img, v, **kwargs):  # [0.1,1.9]
     assert 0.1 <= v <= 1.9
     return PIL.ImageEnhance.Sharpness(img).enhance(v)
 
 
-def Cutout(img, v):  # [0, 60] => percentage: [0, 0.2]
+def Cutout(img, v, fillcolor = None):  # [0, 60] => percentage: [0, 0.2]
     assert 0.0 <= v <= 0.2
     if v <= 0.:
         return img
-
     v = v * img.size[0]
-    return CutoutAbs(img, v)
+    return CutoutAbs(img, v, fillcolor = fillcolor)
 
 
-def CutoutAbs(img, v):  # [0, 60] => percentage: [0, 0.2]
+def CutoutAbs(img, v, fillcolor = None):  # [0, 60] => percentage: [0, 0.2]
     # assert 0 <= v <= 20
     if v < 0:
         return img
@@ -133,7 +132,7 @@ def CutoutAbs(img, v):  # [0, 60] => percentage: [0, 0.2]
     y1 = min(h, y0 + v)
 
     xy = (x0, y0, x1, y1)
-    color = (125, 123, 114)
+    color = fillcolor or (125, 123, 114)
     # color = (0, 0, 0)
     img = img.copy()
     PIL.ImageDraw.Draw(img).rectangle(xy, color)
@@ -185,6 +184,6 @@ def get_augment(name):
     return augment_dict[name]
 
 
-def apply_augment(img, name, level):
+def apply_augment(img, name, level, fillcolor = None):
     augment_fn, low, high = get_augment(name)
-    return augment_fn(img.copy(), level * (high - low) + low)
+    return augment_fn(img.copy(), level * (high - low) + low, fillcolor = fillcolor)

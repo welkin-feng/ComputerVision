@@ -15,15 +15,15 @@ from .util_modules import *
 from .alexnet import *
 from .inception_v1 import *
 from .vgg import *
-from .spp import *
 from .mobilenet_v1 import *
 from .resnet import *
 from .yolo_v1 import *
 from .yolo_v2 import *
-from .se_module import *
 from .res2net_module import *
 from .dla import *
 from .hrnet import *
+from .resnet_modified import *
+
 
 def get_model(config):
     return globals()[config.architecture](**config)

@@ -13,7 +13,8 @@ import torch.nn.functional as F
 
 from .layers import SEModule, DropBlock2D
 
-__all__ = ['ResNet', 'BasicBlock', 'Bottleneck', 'se_resnext50_modified_32x4d']  # model_registry will add each entrypoint fn to this
+__all__ = ['ResNet', 'BasicBlock', 'Bottleneck',
+           'se_resnext50_modified_32x4d']  # model_registry will add each entrypoint fn to this
 
 
 # def _cfg(url='', **kwargs):
@@ -286,8 +287,8 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes = 1000, in_chans = 3,
                  cardinality = 1, base_width = 64, stem_width = 64, stem_type = '',
                  block_reduce_first = 1, down_kernel_size = 1, avg_down = False, output_stride = 32,
-                 act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d, drop_rate = 0.0, drop_path_rate = 0.,
-                 drop_block_rate = 0., global_pool = 'avg', zero_init_last_bn = True, block_args = None):
+                 act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d, drop_rate = 0.0, drop_block = None,
+                 zero_init_last_bn = True, block_args = None):
         block_args = block_args or dict()
         self.num_classes = num_classes
         deep_stem = 'deep' in stem_type
@@ -351,8 +352,10 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, *layer_args[2], pool = pool[2], **layer_kwargs)
         self.layer4 = self._make_layer(block, *layer_args[3], pool = pool[3], **layer_kwargs)
 
-        self.drop_block0 = DropBlock2D(drop_block_rate, block_size = 16) if drop_block_rate else None
-        self.drop_block1 = DropBlock2D(drop_block_rate, block_size = 8) if drop_block_rate else None
+        self.drop_block0, self.drop_block1 = None, None
+        if drop_block is not None:
+            self.drop_block0 = drop_block[0]
+            self.drop_block1 = drop_block[1]
 
         # Head (Pooling and Classifier)
         # self.global_pool = SelectAdaptivePool2d(pool_type = global_pool)
@@ -446,13 +449,16 @@ def se_resnext50_modified_32x4d(pretrained = False, num_classes = 1000, in_chans
     act_layer = nn.ReLU
     stem_type = 'deep_tiered_narrow'
     avg_down = True
+    drop_block = [DropBlock2D(0.2, 40),
+                  DropBlock2D(0.2, 20)]
     block_args = dict(attn_layer = 'se', use_pooling = True, residual_fn = 'max')
 
     model = ResNet(Bottleneck, [3, 4, 6, 3], num_classes = num_classes, in_chans = in_chans,
                    cardinality = 32, base_width = 4, act_layer = act_layer,
-                   stem_type = stem_type, avg_down = avg_down, block_args = block_args, **kwargs)
+                   stem_type = stem_type, avg_down = avg_down, drop_block = drop_block,
+                   block_args = block_args, **kwargs)
     if pretrained:
         pretrained_url = 'https://github.com/rwightman/pytorch-pretrained-gluonresnet/releases/download/v0.1/gluon_resnext50_32x4d-e6a097c1.pth'
-        load_pretrained_model(model, 'conv1', in_chans, url = pretrained_url, skip = ('conv1.', ''))
+        load_pretrained_model(model, 'conv1', in_chans, url = pretrained_url, skip = ('conv1.',))
 
     return model

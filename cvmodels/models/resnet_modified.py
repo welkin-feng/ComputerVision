@@ -171,6 +171,8 @@ class Bottleneck(nn.Module):
         x = self.drop_path(x) if self.drop_path is not None else x
 
         if self.downsample is not None:
+            # if self.stride > 1:
+            #     x = F.avg_pool2d(x, self.stride, self.stride)
             residual = self.downsample(residual)
 
         if self.residual_fn == 'sum':
@@ -316,7 +318,7 @@ class ResNet(nn.Module):
 
             # no downsample in stem
             self.conv1 = nn.Sequential(*[
-                nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 1, padding = 2, bias = False),
+                nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 2, padding = 2, bias = False),
                 norm_layer(stem_chs_1),
                 act_layer(inplace = True),
                 nn.Conv2d(stem_chs_1, stem_chs_2, kernel_size = 3, stride = 1, padding = 1, bias = False),
@@ -342,7 +344,7 @@ class ResNet(nn.Module):
         else:
             assert output_stride == 32
             # make downsample on layer1 instead of (conv1 + maxpool)
-            strides[0] = 2
+            # strides[0] = 2
         layer_args = list(zip(channels, layers, strides, dilations))
         layer_kwargs = dict(
             reduce_first = block_reduce_first, act_layer = act_layer, norm_layer = norm_layer,

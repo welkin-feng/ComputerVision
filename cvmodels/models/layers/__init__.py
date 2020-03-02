@@ -10,5 +10,5 @@ File Name:  __init__.py.py
 
 from .spp import *
 from .frn import FRN, TLU
-from .se_module import SELayer, SEModule
+from .se_module import SEModule
 from .dropblock import DropBlock2D, DropBlock3D

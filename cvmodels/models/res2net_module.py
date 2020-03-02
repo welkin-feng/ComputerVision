@@ -11,7 +11,7 @@ import math
 
 import torch
 from torch import nn
-from cvmodels.models.layers.se_module import SELayer
+from cvmodels.models.layers.se_module import SEModule
 
 BatchNorm = nn.BatchNorm2d
 
@@ -233,7 +233,7 @@ class SEBottle2neck(nn.Module):
         self.conv3 = nn.Conv2d(width * scale, planes, kernel_size = 1, bias = False)
         self.bn3 = BatchNorm(planes)
 
-        self.se = SELayer(planes, reduction)
+        self.se = SEModule(planes, reduction)
         self.relu = nn.ReLU(inplace = True)
         self.stype = stype
         self.scale = scale
@@ -320,7 +320,7 @@ class SEBottle2neckX(nn.Module):
         self.conv3 = nn.Conv2d(width * scale, planes, kernel_size = 1, bias = False)
         self.bn3 = BatchNorm(planes)
 
-        self.se = SELayer(planes, reduction)
+        self.se = SEModule(planes, reduction)
         self.relu = nn.ReLU(inplace = True)
         self.stype = stype
         self.scale = scale

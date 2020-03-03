@@ -125,9 +125,8 @@ class Bottleneck(nn.Module):
                     self.pool = nn.AvgPool2d(kernel_size = stride, stride = stride)
             if self.pool is None:
                 _stride = stride
-        self.conv2 = nn.Conv2d(
-            first_planes, width, kernel_size = 3, stride = _stride,
-            padding = first_dilation, dilation = first_dilation, groups = cardinality, bias = False)
+        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = _stride, padding = first_dilation,
+                               dilation = first_dilation, groups = cardinality, bias = False)
         self.bn2 = norm_layer(width)
         self.act2 = act_layer(inplace = True)
 
@@ -171,8 +170,6 @@ class Bottleneck(nn.Module):
         x = self.drop_path(x) if self.drop_path is not None else x
 
         if self.downsample is not None:
-            # if self.stride > 1:
-            #     x = F.avg_pool2d(x, self.stride, self.stride)
             residual = self.downsample(residual)
 
         if self.residual_fn == 'sum':
@@ -181,7 +178,6 @@ class Bottleneck(nn.Module):
             x = torch.max(x, residual)  # use max instead of sum
 
         x = self.act3(x)
-
         return x
 
 
@@ -307,18 +303,10 @@ class ResNet(nn.Module):
             if 'tiered' in stem_type:
                 stem_chs_1 = 3 * (stem_width // 4)
                 stem_chs_2 = stem_width if 'narrow' in stem_type else 6 * (stem_width // 4)
-            # self.conv1 = nn.Sequential(*[
-            #     nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
-            #     norm_layer(stem_chs_1),
-            #     act_layer(inplace = True),
-            #     nn.Conv2d(stem_chs_1, stem_chs_2, 3, stride = 1, padding = 1, bias = False),
-            #     norm_layer(stem_chs_2),
-            #     act_layer(inplace = True),
-            #     nn.Conv2d(stem_chs_2, self.inplanes, 3, stride = 1, padding = 1, bias = False)])
-
             # no downsample in stem
             self.conv1 = nn.Sequential(*[
-                nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 2, padding = 2, bias = False),
+                # nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
+                nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 1, padding = 2, bias = False),
                 norm_layer(stem_chs_1),
                 act_layer(inplace = True),
                 nn.Conv2d(stem_chs_1, stem_chs_2, kernel_size = 3, stride = 1, padding = 1, bias = False),
@@ -329,11 +317,11 @@ class ResNet(nn.Module):
             self.conv1 = nn.Conv2d(in_chans, self.inplanes, kernel_size = 7, stride = 2, padding = 3, bias = False)
         self.bn1 = norm_layer(self.inplanes)
         self.act1 = act_layer(inplace = True)
-        # self.maxpool = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
+        self.maxpool = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
 
         # Feature Blocks
-
         channels, strides, dilations = [64, 128, 256, 512], [1, 2, 2, 2], [1] * 4
+        strides[0] = 2  # make downsample on layer1 instead of (conv1 / maxpool)
         pool = ['max', 'max', 'max', 'avg']
         if output_stride == 16:
             strides[3] = 1
@@ -343,8 +331,7 @@ class ResNet(nn.Module):
             dilations[2:4] = [2, 4]
         else:
             assert output_stride == 32
-            # make downsample on layer1 instead of (conv1 + maxpool)
-            # strides[0] = 2
+
         layer_args = list(zip(channels, layers, strides, dilations))
         layer_kwargs = dict(
             reduce_first = block_reduce_first, act_layer = act_layer, norm_layer = norm_layer,
@@ -360,10 +347,10 @@ class ResNet(nn.Module):
             self.drop_block1 = drop_block[1]
 
         # Head (Pooling and Classifier)
-        # self.global_pool = SelectAdaptivePool2d(pool_type = global_pool)
-        self.global_pool = nn.AdaptiveAvgPool2d(output_size = 1)
         self.num_features = 512 * block.expansion
+        # self.global_pool = SelectAdaptivePool2d(pool_type = global_pool)
         # self.fc = nn.Linear(self.num_features * self.global_pool.feat_mult(), num_classes)
+        self.global_pool = nn.AdaptiveAvgPool2d(output_size = 1)
         self.fc = nn.Linear(self.num_features, num_classes)
 
         for n, m in self.named_modules():
@@ -400,13 +387,11 @@ class ResNet(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.act1(x)
-        # x = self.maxpool(x)
-
+        x = self.maxpool(x) if self.maxpool else x
         x = self.drop_block0(x) if self.drop_block0 is not None else x
 
         x = self.layer1(x)
         x = self.drop_block1(x) if self.drop_block1 is not None else x
-
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
@@ -419,9 +404,6 @@ class ResNet(nn.Module):
             x = F.dropout(x, p = float(self.drop_rate), training = self.training)
         x = self.fc(x)
         return x
-
-    def load_pretrain(self):
-        pass
 
 
 def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url = '', skip = ()):

@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .layers import SEModule, DropBlock2D
+from .layers import SEModule, DropBlock2D, AvgPool2dSame
 
 __all__ = ['ResNet', 'BasicBlock', 'Bottleneck',
            'se_resnext50_modified_32x4d']  # model_registry will add each entrypoint fn to this
@@ -120,13 +120,13 @@ class Bottleneck(nn.Module):
             if use_pooling:
                 _stride = 1
                 if pool == 'max':
-                    self.pool = nn.MaxPool2d(kernel_size = stride, stride = stride)
+                    self.pool = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
                 elif pool == 'avg':
-                    self.pool = nn.AvgPool2d(kernel_size = stride, stride = stride)
+                    self.pool = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
             if self.pool is None:
                 _stride = stride
-        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = _stride, padding = first_dilation,
-                               dilation = first_dilation, groups = cardinality, bias = False)
+        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = _stride,
+                               padding = first_dilation, dilation = first_dilation, groups = cardinality, bias = False)
         self.bn2 = norm_layer(width)
         self.act2 = act_layer(inplace = True)
 
@@ -172,38 +172,35 @@ class Bottleneck(nn.Module):
         if self.downsample is not None:
             residual = self.downsample(residual)
 
-        if self.residual_fn == 'sum':
-            x = torch.sum(x, residual)
-        elif self.residual_fn == 'max':
+        if self.residual_fn == 'max':
             x = torch.max(x, residual)  # use max instead of sum
+        else:  # self.residual_fn == 'sum'
+            x += residual
 
         x = self.act3(x)
         return x
 
 
-def downsample_conv(
-        in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
+def downsample_conv(in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
     norm_layer = norm_layer or nn.BatchNorm2d
     kernel_size = 1 if stride == 1 and dilation == 1 else kernel_size
     first_dilation = (first_dilation or dilation) if kernel_size > 1 else 1
     p = get_padding(kernel_size, stride, first_dilation)
 
     return nn.Sequential(*[
-        nn.Conv2d(
-            in_channels, out_channels, kernel_size, stride = stride, padding = p, dilation = first_dilation, bias = False),
+        nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = p, dilation = first_dilation, bias = False),
         norm_layer(out_channels)
     ])
 
 
-def downsample_avg(
-        in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
+def downsample_avg(in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
     norm_layer = norm_layer or nn.BatchNorm2d
     avg_stride = stride if dilation == 1 else 1
     if stride == 1 and dilation == 1:
         pool = nn.Identity()
     else:
-        # avg_pool_fn = AvgPool2dSame if avg_stride == 1 and dilation > 1 else nn.AvgPool2d
-        pool = nn.AvgPool2d(2, avg_stride, ceil_mode = True, count_include_pad = False)
+        avg_pool_fn = AvgPool2dSame if avg_stride == 1 and dilation > 1 else nn.AvgPool2d
+        pool = avg_pool_fn(2, avg_stride, ceil_mode = True, count_include_pad = False)
 
     return nn.Sequential(*[
         pool,

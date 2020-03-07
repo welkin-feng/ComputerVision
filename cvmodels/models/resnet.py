@@ -11,7 +11,8 @@ File Name:  resnet.py
 __author__ = 'Welkin'
 __date__ = '2019/7/10 00:23'
 
-import torch.nn as nn
+from torch import nn
+from torch.nn import functional as F
 
 __all__ = ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
            'resnet20_cifar', 'resnet32_cifar', 'resnet44_cifar',

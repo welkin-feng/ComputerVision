@@ -12,3 +12,4 @@ from .spp import *
 from .frn import FRN, TLU
 from .se_module import SEModule
 from .dropblock import DropBlock2D, DropBlock3D
+from .avg_pool_same import AvgPool2dSame

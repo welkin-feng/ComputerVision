@@ -302,8 +302,8 @@ class ResNet(nn.Module):
                 stem_chs_2 = stem_width if 'narrow' in stem_type else 6 * (stem_width // 4)
             # no downsample in stem
             self.conv1 = nn.Sequential(*[
-                # nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
-                nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 1, padding = 2, bias = False),
+                nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
+                # nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 1, padding = 2, bias = False),
                 norm_layer(stem_chs_1),
                 act_layer(inplace = True),
                 nn.Conv2d(stem_chs_1, stem_chs_2, kernel_size = 3, stride = 1, padding = 1, bias = False),
@@ -318,7 +318,7 @@ class ResNet(nn.Module):
 
         # Feature Blocks
         channels, strides, dilations = [64, 128, 256, 512], [1, 2, 2, 2], [1] * 4
-        strides[0] = 2  # make downsample on layer1 instead of (conv1 / maxpool)
+        # strides[0] = 2  # make downsample on layer1 instead of (conv1 / maxpool)
         pool = ['max', 'max', 'max', 'avg']
         if output_stride == 16:
             strides[3] = 1

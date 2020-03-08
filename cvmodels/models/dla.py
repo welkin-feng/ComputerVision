@@ -7,11 +7,11 @@ import torch
 from torch import nn
 from torch.utils import model_zoo
 
-from .res2net_module import Bottle2neck, Bottle2neckX, SEBottle2neck, SEBottle2neckX
+from .res2net import Bottle2neck
 
 BatchNorm = nn.BatchNorm2d
 
-__all__ = ['res2net_dla60', 'res2next_dla60', 'se_res2net_dla60', 'se_res2next_dla60']
+__all__ = ['res2net_dla60', 'res2next_dla60']
 
 model_urls = {
     'res2net_dla60': 'http://data.kaizhao.net/projects/res2net/pretrained/res2net_dla60_4s-d88db7f9.pth',
@@ -199,26 +199,6 @@ def res2next_dla60(pretrained = None, **kwargs):
     model = DLA([1, 1, 1, 2, 3, 1],
                 [16, 32, 128, 256, 512, 1024],
                 block = Bottle2neckX, **kwargs)
-    if pretrained:
-        model.load_pretrained_model('res2next_dla60')
-    return model
-
-
-def se_res2net_dla60(pretrained = None, **kwargs):
-    SEBottle2neck.expansion = 2
-    model = DLA([1, 1, 1, 2, 3, 1],
-                [16, 32, 128, 256, 512, 1024],
-                block = SEBottle2neck, **kwargs)
-    if pretrained:
-        model.load_pretrained_model('res2net_dla60')
-    return model
-
-
-def se_res2next_dla60(pretrained = None, **kwargs):
-    SEBottle2neckX.expansion = 2
-    model = DLA([1, 1, 1, 2, 3, 1],
-                [16, 32, 128, 256, 512, 1024],
-                block = SEBottle2neckX, **kwargs)
     if pretrained:
         model.load_pretrained_model('res2next_dla60')
     return model

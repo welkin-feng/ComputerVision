@@ -19,7 +19,7 @@ from .mobilenet_v1 import *
 from .resnet import *
 from .yolo_v1 import *
 from .yolo_v2 import *
-from .res2net_module import *
+from .res2net import *
 from .dla import *
 from .hrnet import *
 from .resnet_modified import *

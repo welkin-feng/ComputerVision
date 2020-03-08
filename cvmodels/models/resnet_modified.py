@@ -200,7 +200,7 @@ def downsample_avg(in_channels, out_channels, kernel_size, stride = 1, dilation 
         pool = nn.Identity()
     else:
         avg_pool_fn = AvgPool2dSame if avg_stride == 1 and dilation > 1 else nn.AvgPool2d
-        pool = avg_pool_fn(2, avg_stride, ceil_mode = True, count_include_pad = False)
+        pool = avg_pool_fn(avg_stride, avg_stride, ceil_mode = True, count_include_pad = False)
 
     return nn.Sequential(*[
         pool,

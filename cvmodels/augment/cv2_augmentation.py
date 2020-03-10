@@ -25,8 +25,8 @@ def do_identity(image, magnitude = None):
 
 # *** geometric ***
 
-def do_random_projective(image, magnitude = 0.5):
-    mag = np.random.uniform(-1, 1) * 0.5 * magnitude
+def do_random_projective(image, magnitude = 0.2):
+    mag = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
     x0, y0 = 0, 0
@@ -54,8 +54,8 @@ def do_random_projective(image, magnitude = 0.5):
     return image
 
 
-def do_random_perspective(image, magnitude = 0.5):
-    mag = np.random.uniform(-1, 1, (4, 2)) * 0.25 * magnitude
+def do_random_perspective(image, magnitude = 0.1):
+    mag = np.random.uniform(-1, 1, (4, 2)) * magnitude
 
     height, width = image.shape[:2]
     s = np.array([[0, 0], [1, 0], [1, 1], [0, 1], ])
@@ -70,8 +70,8 @@ def do_random_perspective(image, magnitude = 0.5):
     return image
 
 
-def do_random_scale(image, magnitude = 0.5):
-    s = 1 + np.random.uniform(-1, 1) * magnitude * 0.5
+def do_random_scale(image, magnitude = 0.2):
+    s = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
     transform = np.array([
@@ -83,7 +83,7 @@ def do_random_scale(image, magnitude = 0.5):
     return image
 
 
-def do_random_shear_x(image, magnitude = 0.5):
+def do_random_shear_x(image, magnitude = 0.2):
     sx = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -96,7 +96,7 @@ def do_random_shear_x(image, magnitude = 0.5):
     return image
 
 
-def do_random_shear_y(image, magnitude = 0.5):
+def do_random_shear_y(image, magnitude = 0.1):
     sy = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -109,7 +109,7 @@ def do_random_shear_y(image, magnitude = 0.5):
     return image
 
 
-def do_random_stretch_x(image, magnitude = 0.5):
+def do_random_stretch_x(image, magnitude = 0.2):
     sx = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -122,7 +122,7 @@ def do_random_stretch_x(image, magnitude = 0.5):
     return image
 
 
-def do_random_stretch_y(image, magnitude = 0.5):
+def do_random_stretch_y(image, magnitude = 0.2):
     sy = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -135,8 +135,8 @@ def do_random_stretch_y(image, magnitude = 0.5):
     return image
 
 
-def do_random_rotate(image, magnitude = 0.5):
-    angle = 1 + np.random.uniform(-1, 1) * 30 * magnitude
+def do_random_rotate(image, magnitude = 15):
+    angle = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
     cx, cy = width // 2, height // 2
@@ -148,7 +148,7 @@ def do_random_rotate(image, magnitude = 0.5):
 
 
 # ----
-def do_random_grid_distortion(image, magnitude = 0.5):
+def do_random_grid_distortion(image, magnitude = 0.3):
     num_step = 5
     distort = magnitude
 
@@ -203,8 +203,8 @@ def do_random_grid_distortion(image, magnitude = 0.5):
 # https://ciechanow.ski/mesh-transforms/
 # https://stackoverflow.com/questions/53907633/how-to-warp-an-image-using-deformed-mesh
 # http://pythology.blogspot.sg/2014/03/interpolation-on-regular-distorted-grid.html
-def do_random_custom_distortion1(image, magnitude = 0.5):
-    distort = magnitude * 0.3
+def do_random_custom_distortion1(image, magnitude = 0.15):
+    distort = magnitude
 
     height, width = image.shape
     s_x = np.array([0.0, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5, 1.0])
@@ -246,14 +246,14 @@ def do_random_custom_distortion1(image, magnitude = 0.5):
 
 
 # *** intensity ***
-def do_random_contast(image, magnitude = 0.5):
+def do_random_contast(image, magnitude = 0.2):
     alpha = 1 + random.uniform(-1, 1) * magnitude
     image = image.astype(np.float32) * alpha
     image = np.clip(image, 0, 1)
     return image
 
 
-def do_random_block_fade(image, magnitude = 0.5):
+def do_random_block_fade(image, magnitude = 0.3):
     size = [0.1, magnitude]
 
     height, width = image.shape
@@ -284,21 +284,21 @@ def do_random_block_fade(image, magnitude = 0.5):
 
 # *** noise ***
 # https://www.kaggle.com/ren4yu/bengali-morphological-ops-as-image-augmentation
-def do_random_erode(image, magnitude = 0.5):
-    s = int(round(1 + np.random.uniform(0, 1) * magnitude * 6))
+def do_random_erode(image, magnitude = 2):
+    s = int(round(1 + np.random.uniform(0, 1) * magnitude))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, tuple((s, s)))
     image = cv2.erode(image, kernel, iterations = 1)
     return image
 
 
-def do_random_dilate(image, magnitude = 0.5):
-    s = int(round(1 + np.random.uniform(0, 1) * magnitude * 6))
+def do_random_dilate(image, magnitude = 1.5):
+    s = int(round(1 + np.random.uniform(0, 1) * magnitude))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, tuple((s, s)))
     image = cv2.dilate(image, kernel, iterations = 1)
     return image
 
 
-def do_random_sprinkle(image, magnitude = 0.5):
+def do_random_sprinkle(image, magnitude = 0.2):
     size = 16
     num_sprinkle = int(round(1 + np.random.randint(10) * magnitude))
 
@@ -319,16 +319,16 @@ def do_random_sprinkle(image, magnitude = 0.5):
 
 
 # https://stackoverflow.com/questions/14435632/impulse-gaussian-and-salt-and-pepper-noise-with-opencv
-def do_random_noise(image, magnitude = 0.5):
+def do_random_noise(image, magnitude = 0.15):
     height, width = image.shape
-    noise = np.random.uniform(-1, 1, (height, width)) * magnitude * 0.7
+    noise = np.random.uniform(-1, 1, (height, width)) * magnitude
     image = image + noise
     image = np.clip(image, 0, 1)
     return image
 
 
-def do_random_line(image, magnitude = 0.5):
-    num_lines = int(round(1 + np.random.randint(8) * magnitude))
+def do_random_line(image, magnitude = 0.2):
+    num_lines = int(round(1 + np.random.randint(10) * magnitude))
 
     height, width = image.shape
     image = image.copy()

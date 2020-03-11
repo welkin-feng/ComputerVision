@@ -303,13 +303,12 @@ class ResNet(nn.Module):
             # no downsample in stem
             self.conv1 = nn.Sequential(*[
                 nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
-                # nn.Conv2d(in_chans, stem_chs_1, kernel_size = 5, stride = 1, padding = 2, bias = False),
                 norm_layer(stem_chs_1),
                 act_layer(inplace = True),
-                nn.Conv2d(stem_chs_1, stem_chs_2, kernel_size = 3, stride = 1, padding = 1, bias = False),
+                nn.Conv2d(stem_chs_1, stem_chs_2, 3, stride = 1, padding = 1, bias = False),
                 norm_layer(stem_chs_2),
                 act_layer(inplace = True),
-                nn.Conv2d(stem_chs_2, self.inplanes, kernel_size = 3, stride = 1, padding = 1, bias = False)])
+                nn.Conv2d(stem_chs_2, self.inplanes, 3, stride = 1, padding = 1, bias = False)])
         else:
             self.conv1 = nn.Conv2d(in_chans, self.inplanes, kernel_size = 7, stride = 2, padding = 3, bias = False)
         self.bn1 = norm_layer(self.inplanes)
@@ -403,8 +402,8 @@ class ResNet(nn.Module):
         return x
 
 
-def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url = '', skip = ()):
-    import os
+def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url = '', skip = (), conversion = ()):
+    import os, numpy
     if os.path.isfile(model_path):
         state_dict = torch.load(model_path, map_location = 'cpu')
     elif url != '':
@@ -419,10 +418,20 @@ def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url 
     elif in_chans != 3:
         assert False, "Invalid in_chans for pretrained weights"
     print('=> loading pretrained model {}'.format(model_path))
+    conversion = numpy.array(conversion).reshape(-1, 2) if len(conversion) else []
     model_dict = model.state_dict()
-    state_dict = {k: v for k, v in state_dict.items() if k in model_dict.keys() and all(s not in k for s in skip)}
-    print('=> loading pretrained model weight length {}'.format(len(state_dict)))
-    model_dict.update(state_dict)
+    pretrained_state_dict = {}
+    for ks in state_dict.keys():
+        if ks in model_dict.keys() and all(s not in ks for s in skip):
+            km = ks
+            for _km, _ks in conversion:
+                if ks == _ks:
+                    km = _km
+                    break
+            pretrained_state_dict[km] = state_dict[ks]
+    print(
+        f"=> loading pretrained model weight length {len(pretrained_state_dict)} / total_state_dict {len(state_dict)} / total_model_dict {len(model_dict)}")
+    model_dict.update(pretrained_state_dict)
     model.load_state_dict(model_dict, strict = False)
 
 

@@ -23,6 +23,7 @@ from .res2net import *
 from .dla import *
 from .hrnet import *
 from .resnet_modified import *
+from .efficientnet import *
 
 
 def get_model(config):

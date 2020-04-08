@@ -64,8 +64,11 @@ class TanhLR(_LRScheduler):
 
     def get_lr(self, t = None):
         t = t or self.last_epoch
-        if t < self.warmup_t:
-            lrs = [self.warmup_lr_init + t * s for s in self.warmup_steps]
+        if 0 <= t < self.warmup_t:
+            if hasattr(self, 'warmup_steps'):
+                lrs = [self.warmup_lr_init + t * s for s in self.warmup_steps]
+            else:
+                lrs = [self.warmup_lr_init + (l_max - self.warmup_lr_init) * t / self.warmup_t for l_max in self.base_lrs]
         else:
             if self.warmup_prefix:
                 t = t - self.warmup_t

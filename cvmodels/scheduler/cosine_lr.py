@@ -55,8 +55,8 @@ class CosineLR(_LRScheduler):
         if self.warmup_t:
             t_v = self.base_lrs if self.warmup_prefix else self.get_lr(self.warmup_t)
             self.warmup_steps = [(v - warmup_lr_init) / self.warmup_t for v in t_v]
-            for param_group, value in zip(self.optimizer.param_groups, self.warmup_lr_init):
-                param_group['lr'] = value
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = warmup_lr_init
         else:
             self.warmup_steps = [1 for _ in self.base_lrs]
 

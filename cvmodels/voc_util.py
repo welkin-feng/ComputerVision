@@ -523,6 +523,17 @@ def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0
     """
         calculate tp/fp for all predicted bboxes for one class of one image.
         对于匹配到同一gt的不同bboxes，让score最高tp = 1，其它的tp = 0
+    Args:
+        pred_boxes: Tensor[N, 4], 某张图片中某类别的全部预测框的坐标 (x0, y0, x1, y1)
+        pred_scores: Tensor[N, 1], 某张图片中某类别的全部预测框的score
+        gt_boxes: Tensor[M, 4], 某张图片中某类别的全部gt的坐标 (x0, y0, x1, y1)
+        gt_difficult: Tensor[M, 1], 某张图片中某类别的gt中是否为difficult目标的值
+        iou_thresh: iou 阈值
+
+    Returns:
+        gt_num: 某张图片中某类别的gt数量
+        tp_list: 记录某张图片中某类别的预测框是否为tp的情况
+        confidence_score: 记录某张图片中某类别的预测框的score值 (与tp_list相对应)
     """
     if gt_boxes.numel() == 0:
         return 0, [], []
@@ -573,9 +584,9 @@ def calculate_pr(gt_num, tp_list, confidence_score):
     calculate all p-r pairs among different score_thresh for one class, using `tp_list` and `confidence_score`.
 
     Args:
-        gt_num:
-        tp_list:
-        confidence_score:
+        gt_num (Integer): 某张图片中某类别的gt数量
+        tp_list (List): 记录某张图片中某类别的预测框是否为tp的情况
+        confidence_score (List): 记录某张图片中某类别的预测框的score值 (与tp_list相对应)
 
     Returns:
         recall

@@ -78,7 +78,7 @@ class CosineLR(_LRScheduler):
             else:
                 i = t // self.t_initial
                 t_i = self.t_initial
-                t_curr = t - (self.t_initial * i)
+                t_curr = t
 
             if self.cycle_limit == 0 or (self.cycle_limit > 0 and i < self.cycle_limit):
                 gamma = self.decay_rate ** i

@@ -24,6 +24,7 @@ from .dla import *
 from .hrnet import *
 from .resnet_modified import *
 from .efficientnet import *
+from .resnest import *
 
 
 def get_model(config):

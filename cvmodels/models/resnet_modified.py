@@ -13,8 +13,7 @@ import torch.nn.functional as F
 
 from .layers import SEModule, DropBlock2D, AvgPool2dSame
 
-__all__ = ['ResNet', 'BasicBlock', 'Bottleneck',
-           'se_resnext50_modified_32x4d']  # model_registry will add each entrypoint fn to this
+__all__ = ['se_resnext50_modified_32x4d']  # model_registry will add each entrypoint fn to this
 
 
 # def _cfg(url='', **kwargs):

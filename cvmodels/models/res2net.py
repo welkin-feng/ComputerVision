@@ -15,7 +15,7 @@ from .resnet_modified import ResNet, load_pretrained_model
 
 BatchNorm = nn.BatchNorm2d
 
-__all__ = ['Bottle2neck', 'res2net50_14w_8s', 'res2net50_26w_4s', 'res2net50_26w_6s', 'res2net50_26w_8s', 'res2net50_48w_2s',
+__all__ = ['res2net50_14w_8s', 'res2net50_26w_4s', 'res2net50_26w_6s', 'res2net50_26w_8s', 'res2net50_48w_2s',
            'res2net101_26w_4s', 'res2next50', 'res2net50_v1b_26w_4s', 'res2net101_v1b_26w_4s']
 
 model_urls = {

@@ -16,7 +16,7 @@ import torch._utils
 
 from .hrnet_module import BasicBlock, Bottleneck, HighResolutionModule, BN_MOMENTUM
 
-__all__ = ['HighResolutionNet']
+__all__ = ['hrnet']
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ class HighResolutionNet(nn.Module):
             self.load_state_dict(model_dict, strict = False)
 
 
-def get_hrnet(config, pretrained_path = '', **kwargs):
+def hrnet(config, pretrained_path = '', **kwargs):
     model = HighResolutionNet(config, **kwargs)
     model.init_weights(pretrained_path)
     return model

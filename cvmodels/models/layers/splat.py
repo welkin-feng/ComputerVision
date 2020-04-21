@@ -21,7 +21,7 @@ class SplAtConv2d(Module):
                  dilation = (1, 1), groups = 1, bias = True,
                  radix = 2, reduction_factor = 4,
                  rectify = False, rectify_avg = False, norm_layer = None,
-                 dropblock_prob = 0.0, **kwargs):
+                 drop_block = None, **kwargs):
         super(SplAtConv2d, self).__init__()
         padding = _pair(padding)
         self.rectify = rectify and (padding[0] > 0 or padding[1] > 0)
@@ -30,7 +30,7 @@ class SplAtConv2d(Module):
         self.radix = radix
         self.cardinality = groups
         self.channels = channels
-        self.dropblock_prob = dropblock_prob
+        self.drop_block = drop_block
         if self.rectify:
             from rfconv import RFConv2d
             self.conv = RFConv2d(in_channels, channels * radix, kernel_size, stride, padding, dilation,
@@ -44,15 +44,12 @@ class SplAtConv2d(Module):
         self.fc1 = Conv2d(channels, inter_channels, 1, groups = self.cardinality)
         self.bn1 = norm_layer(inter_channels)
         self.fc2 = Conv2d(inter_channels, channels * radix, 1, groups = self.cardinality)
-        if dropblock_prob > 0.0:
-            self.dropblock = DropBlock2D(dropblock_prob, 3)
 
     def forward(self, x):
         x = self.conv(x)
         if self.use_bn:
             x = self.bn0(x)
-        if self.dropblock_prob > 0.0:
-            x = self.dropblock(x)
+        x = self.drop_block(x) if self.drop_block is not None else x
         x = self.relu(x)
 
         batch, channel = x.shape[:2]

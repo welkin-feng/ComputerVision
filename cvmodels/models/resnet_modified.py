@@ -101,7 +101,8 @@ class Bottleneck(nn.Module):
 
     def __init__(self, inplanes, planes, stride = 1, downsample = None, cardinality = 1, base_width = 64,
                  reduce_first = 1, dilation = 1, first_dilation = None, act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d,
-                 attn_layer = None, drop_block = None, drop_path = None, pool = 'max', use_pooling = False, residual_fn = 'sum'):
+                 attn_layer = None, drop_block = None, drop_path = None, pool_type = 'max', use_pooling = False,
+                 residual_fn = 'sum'):
         super(Bottleneck, self).__init__()
 
         width = int(math.floor(planes * (base_width / 64)) * cardinality)
@@ -113,18 +114,15 @@ class Bottleneck(nn.Module):
         self.bn1 = norm_layer(first_planes)
         self.act1 = act_layer(inplace = True)
 
-        _stride = stride
         self.pool = None
-        if stride > 1:
-            if use_pooling:
-                _stride = 1
-                if pool == 'max':
-                    self.pool = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
-                elif pool == 'avg':
-                    self.pool = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
-            if self.pool is None:
-                _stride = stride
-        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = _stride,
+        if stride > 1 and use_pooling:
+            if pool_type == 'max':
+                self.pool = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
+                stride = 1
+            elif pool_type == 'avg':
+                self.pool = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
+                stride = 1
+        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = stride,
                                padding = first_dilation, dilation = first_dilation, groups = cardinality, bias = False)
         self.bn2 = norm_layer(width)
         self.act2 = act_layer(inplace = True)
@@ -278,10 +276,9 @@ class ResNet(nn.Module):
         Global pooling type. One of 'avg', 'max', 'avgmax', 'catavgmax'
     """
 
-    def __init__(self, block, layers, num_classes = 1000, in_chans = 3,
-                 cardinality = 1, base_width = 64, stem_width = 64, stem_type = '',
-                 block_reduce_first = 1, down_kernel_size = 1, avg_down = False, output_stride = 32,
-                 act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d, drop_rate = 0.0, drop_block = None,
+    def __init__(self, block, layers, num_classes = 1000, in_chans = 3, cardinality = 1, base_width = 64,
+                 stem_width = 64, stem_type = '', act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d, output_stride = 32,
+                 block_reduce_first = 1, down_kernel_size = 1, avg_down = False, drop_rate = 0.0, drop_block = None,
                  zero_init_last_bn = True, block_args = None):
         block_args = block_args or dict()
         self.num_classes = num_classes
@@ -317,7 +314,8 @@ class ResNet(nn.Module):
         # Feature Blocks
         channels, strides, dilations = [64, 128, 256, 512], [1, 2, 2, 2], [1] * 4
         # strides[0] = 2  # make downsample on layer1 instead of (conv1 / maxpool)
-        pool = ['max', 'max', 'max', 'avg']
+        pool_type = block_args.pop('pool_type', None)
+        pool_types = [pool_type] * 4 if pool_type else ['max', 'max', 'max', 'avg']
         if output_stride == 16:
             strides[3] = 1
             dilations[3] = 2
@@ -331,10 +329,10 @@ class ResNet(nn.Module):
         layer_kwargs = dict(
             reduce_first = block_reduce_first, act_layer = act_layer, norm_layer = norm_layer,
             avg_down = avg_down, down_kernel_size = down_kernel_size, **block_args)
-        self.layer1 = self._make_layer(block, *layer_args[0], pool = pool[0], **layer_kwargs)
-        self.layer2 = self._make_layer(block, *layer_args[1], pool = pool[1], **layer_kwargs)
-        self.layer3 = self._make_layer(block, *layer_args[2], pool = pool[2], **layer_kwargs)
-        self.layer4 = self._make_layer(block, *layer_args[3], pool = pool[3], **layer_kwargs)
+        self.layer1 = self._make_layer(block, *layer_args[0], pool_type = pool_types[0], **layer_kwargs)
+        self.layer2 = self._make_layer(block, *layer_args[1], pool_type = pool_types[1], **layer_kwargs)
+        self.layer3 = self._make_layer(block, *layer_args[2], pool_type = pool_types[2], **layer_kwargs)
+        self.layer4 = self._make_layer(block, *layer_args[3], pool_type = pool_types[3], **layer_kwargs)
 
         self.drop_block0, self.drop_block1 = None, None
         if drop_block is not None:

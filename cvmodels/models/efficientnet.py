@@ -19,7 +19,6 @@ from .efficientnet_utils import (
     efficientnet_params,
     url_map_advprop,
     url_map,
-    load_pretrained_weights,
     Swish,
     MemoryEfficientSwish,
     calculate_output_image_size
@@ -199,8 +198,8 @@ class EfficientNet(nn.Module):
         in_channels = block_args.output_filters  # output of final block
         self.out_channels = round_filters(1280, self._global_params)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
-        self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
+        self._conv_head = Conv2d(in_channels, self.out_channels, kernel_size=1, bias=False)
+        self._bn1 = nn.BatchNorm2d(num_features=self.out_channels, momentum=bn_mom, eps=bn_eps)
 
         # Final linear layer
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)

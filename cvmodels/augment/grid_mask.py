@@ -1,12 +1,11 @@
 import torch
-import torch.nn as nn
 import numpy as np
 from PIL import Image
 import math
 
 
 class GridMask(object):
-    def __init__(self, num_grid, rotate = 0, ratio = 0.5, mode = 0, prob = 1.):
+    def __init__(self, num_grid, rotate=0, ratio=0.5, mode=0, prob=1.):
         if isinstance(num_grid, int):
             num_grid = (num_grid, num_grid)
         if isinstance(rotate, int):
@@ -27,7 +26,7 @@ class GridMask(object):
 
         # 1.5 * h, 1.5 * w works fine with the squared images
         # But with rectangular input, the mask might not be able to recover back to the input image shape
-        # A square mask with edge length equal to the diagnoal of the input image 
+        # A square mask with edge length equal to the diagnoal of the input image
         # will be able to cover all the image spot after the rotation. This is also the minimum square.
         hh = math.ceil((math.sqrt(h * h + w * w)))
 
@@ -71,7 +70,7 @@ class GridMask(object):
 
 
 class GridMaskBatch(object):
-    def __init__(self, num_grid, rotate = 0, ratio = 0.5, mode = 0, prob = 1.):
+    def __init__(self, num_grid, rotate=0, ratio=0.5, mode=0, prob=1.):
         super(GridMaskBatch, self).__init__()
         self.rotate = rotate
         self.ratio = ratio

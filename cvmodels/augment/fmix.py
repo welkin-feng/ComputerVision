@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import beta
 
 
-def fftfreqnd(h, w = None, z = None):
+def fftfreqnd(h, w=None, z=None):
     """ Get bin values for discrete fourier transform of size (h, w, z)
 
     :param h: Required, first dimension size
@@ -33,7 +33,7 @@ def fftfreqnd(h, w = None, z = None):
     return np.sqrt(fx * fx + fy * fy + fz * fz)
 
 
-def get_spectrum(freqs, decay_power, ch, h, w = 0, z = 0):
+def get_spectrum(freqs, decay_power, ch, h, w=0, z=0):
     """ Samples a fourier image with given size and frequencies decayed by decay power
 
     :param freqs: Bin values for the discrete fourier transform
@@ -53,7 +53,7 @@ def get_spectrum(freqs, decay_power, ch, h, w = 0, z = 0):
     return scale * param
 
 
-def make_low_freq_image(decay, shape, ch = 1):
+def make_low_freq_image(decay, shape, ch=1):
     """ Sample a low frequency image from fourier space
 
     :param decay_power: Decay power for frequency decay prop 1/f**d
@@ -78,7 +78,7 @@ def make_low_freq_image(decay, shape, ch = 1):
     return mask
 
 
-def sample_lam(alpha, reformulate = False):
+def sample_lam(alpha, reformulate=False):
     """ Sample a lambda from symmetric beta distribution with given alpha
 
     :param alpha: Alpha value for beta distribution
@@ -92,7 +92,7 @@ def sample_lam(alpha, reformulate = False):
     return lam
 
 
-def binarise_mask(mask, lam, in_shape, max_soft = 0.0):
+def binarise_mask(mask, lam, in_shape, max_soft=0.0):
     """ Binarises a given low frequency image such that it has mean lambda.
 
     :param mask: Low frequency image, usually the result of `make_low_freq_image`
@@ -121,9 +121,9 @@ def binarise_mask(mask, lam, in_shape, max_soft = 0.0):
     return mask
 
 
-def sample_mask(alpha, decay_power, shape, max_soft = 0.0, reformulate = False):
-    """ Samples a mean lambda from beta distribution parametrised by alpha, creates a low frequency image and binarises
-    it based on this lambda
+def sample_mask(alpha, decay_power, shape, max_soft=0.0, reformulate=False):
+    """ Samples a mean lambda from beta distribution parametrised by alpha, creates a low
+    frequency image and binarises it based on this lambda
 
     :param alpha: Alpha value for beta distribution from which to sample mean of mask
     :param decay_power: Decay power for frequency decay prop 1/f**d
@@ -144,7 +144,7 @@ def sample_mask(alpha, decay_power, shape, max_soft = 0.0, reformulate = False):
     return lam, mask
 
 
-def sample_and_apply(x, alpha, decay_power, shape, max_soft = 0.0, reformulate = False):
+def sample_and_apply(x, alpha, decay_power, shape, max_soft=0.0, reformulate=False):
     """
 
     :param x: Image batch on which to apply fmix of shape [b, c, shape*]
@@ -173,7 +173,7 @@ class FMixBase:
             reformulate (bool): If True, uses the reformulation of [1].
     """
 
-    def __init__(self, decay_power = 3, alpha = 1, size = (32, 32), max_soft = 0.0, reformulate = False):
+    def __init__(self, decay_power=3, alpha=1, size=(32, 32), max_soft=0.0, reformulate=False):
         super().__init__()
         self.decay_power = decay_power
         self.reformulate = reformulate

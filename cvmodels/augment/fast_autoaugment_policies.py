@@ -1,60 +1,59 @@
 import random
 import numpy as np
 import PIL, PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
-from PIL import Image
 
 random_mirror = True
 
 
-def ShearX(img, v, fillcolor = None):  # [-0.3, 0.3]
+def ShearX(img, v, fillcolor=None):  # [-0.3, 0.3]
     assert -0.3 <= v <= 0.3
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, v, 0, 0, 1, 0), fillcolor=fillcolor)
 
 
-def ShearY(img, v, fillcolor = None):  # [-0.3, 0.3]
+def ShearY(img, v, fillcolor=None):  # [-0.3, 0.3]
     assert -0.3 <= v <= 0.3
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, v, 1, 0), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, v, 1, 0), fillcolor=fillcolor)
 
 
-def TranslateX(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateX(img, v, fillcolor=None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert -0.45 <= v <= 0.45
     if random_mirror and random.random() > 0.5:
         v = -v
     v = v * img.size[0]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor=fillcolor)
 
 
-def TranslateY(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateY(img, v, fillcolor=None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert -0.45 <= v <= 0.45
     if random_mirror and random.random() > 0.5:
         v = -v
     v = v * img.size[1]
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor=fillcolor)
 
 
-def TranslateXAbs(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateXAbs(img, v, fillcolor=None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert 0 <= v <= 10
     if random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, v, 0, 1, 0), fillcolor=fillcolor)
 
 
-def TranslateYAbs(img, v, fillcolor = None):  # [-150, 150] => percentage: [-0.45, 0.45]
+def TranslateYAbs(img, v, fillcolor=None):  # [-150, 150] => percentage: [-0.45, 0.45]
     assert 0 <= v <= 10
     if random.random() > 0.5:
         v = -v
-    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor = fillcolor)
+    return img.transform(img.size, PIL.Image.AFFINE, (1, 0, 0, 0, 1, v), fillcolor=fillcolor)
 
 
-def Rotate(img, v, fillcolor = None):  # [-30, 30]
+def Rotate(img, v, fillcolor=None):  # [-30, 30]
     assert -30 <= v <= 30
     if random_mirror and random.random() > 0.5:
         v = -v
-    return img.rotate(v, fillcolor = fillcolor)
+    return img.rotate(v, fillcolor=fillcolor)
 
 
 def AutoContrast(img, _, **kwargs):
@@ -110,15 +109,15 @@ def Sharpness(img, v, **kwargs):  # [0.1,1.9]
     return PIL.ImageEnhance.Sharpness(img).enhance(v)
 
 
-def Cutout(img, v, fillcolor = None):  # [0, 60] => percentage: [0, 0.2]
+def Cutout(img, v, fillcolor=None):  # [0, 60] => percentage: [0, 0.2]
     assert 0.0 <= v <= 0.2
     if v <= 0.:
         return img
     v = v * img.size[0]
-    return CutoutAbs(img, v, fillcolor = fillcolor)
+    return CutoutAbs(img, v, fillcolor=fillcolor)
 
 
-def CutoutAbs(img, v, fillcolor = None):  # [0, 60] => percentage: [0, 0.2]
+def CutoutAbs(img, v, fillcolor=None):  # [0, 60] => percentage: [0, 0.2]
     # assert 0 <= v <= 20
     if v < 0:
         return img
@@ -148,7 +147,7 @@ def SamplePairing(imgs):  # [0, 0.4]
     return f
 
 
-def augment_list(for_autoaug = True):  # 16 oeprations and their ranges
+def augment_list(for_autoaug=True):  # 16 oeprations and their ranges
     l = [
         (ShearX, -0.3, 0.3),  # 0
         (ShearY, -0.3, 0.3),  # 1
@@ -184,6 +183,6 @@ def get_augment(name):
     return augment_dict[name]
 
 
-def apply_augment(img, name, level, fillcolor = None):
+def apply_augment(img, name, level, fillcolor=None):
     augment_fn, low, high = get_augment(name)
-    return augment_fn(img.copy(), level * (high - low) + low, fillcolor = fillcolor)
+    return augment_fn(img.copy(), level * (high - low) + low, fillcolor=fillcolor)

@@ -19,13 +19,13 @@ import torch
 
 
 # ---
-def do_identity(image, magnitude = None):
+def do_identity(image, magnitude=None):
     return image
 
 
 # *** geometric ***
 
-def do_random_projective(image, magnitude = 0.2):
+def do_random_projective(image, magnitude=0.2):
     mag = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -48,13 +48,13 @@ def do_random_projective(image, magnitude = 0.2):
     d = np.array([[x0, y0], [x1, y1], [x2, y2], [x3, y3], ]) * [[width, height]]
     transform = cv2.getPerspectiveTransform(s.astype(np.float32), d.astype(np.float32))
 
-    image = cv2.warpPerspective(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                                borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpPerspective(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
     return image
 
 
-def do_random_perspective(image, magnitude = 0.1):
+def do_random_perspective(image, magnitude=0.1):
     mag = np.random.uniform(-1, 1, (4, 2)) * magnitude
 
     height, width = image.shape[:2]
@@ -64,13 +64,13 @@ def do_random_perspective(image, magnitude = 0.1):
     d *= [[width, height]]
     transform = cv2.getPerspectiveTransform(s.astype(np.float32), d.astype(np.float32))
 
-    image = cv2.warpPerspective(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                                borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpPerspective(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
     return image
 
 
-def do_random_scale(image, magnitude = 0.2):
+def do_random_scale(image, magnitude=0.2):
     s = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -78,12 +78,12 @@ def do_random_scale(image, magnitude = 0.2):
         [s, 0, 0],
         [0, s, 0],
     ], np.float32)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
-def do_random_shear_x(image, magnitude = 0.2):
+def do_random_shear_x(image, magnitude=0.2):
     sx = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -91,12 +91,12 @@ def do_random_shear_x(image, magnitude = 0.2):
         [1, sx, 0],
         [0, 1, 0],
     ], np.float32)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
-def do_random_shear_y(image, magnitude = 0.1):
+def do_random_shear_y(image, magnitude=0.1):
     sy = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -104,12 +104,12 @@ def do_random_shear_y(image, magnitude = 0.1):
         [1, 0, 0],
         [sy, 1, 0],
     ], np.float32)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
-def do_random_stretch_x(image, magnitude = 0.2):
+def do_random_stretch_x(image, magnitude=0.2):
     sx = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -117,12 +117,12 @@ def do_random_stretch_x(image, magnitude = 0.2):
         [sx, 0, 0],
         [0, 1, 0],
     ], np.float32)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
-def do_random_stretch_y(image, magnitude = 0.2):
+def do_random_stretch_y(image, magnitude=0.2):
     sy = 1 + np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
@@ -130,25 +130,25 @@ def do_random_stretch_y(image, magnitude = 0.2):
         [1, 0, 0],
         [0, sy, 0],
     ], np.float32)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
-def do_random_rotate(image, magnitude = 15):
+def do_random_rotate(image, magnitude=15):
     angle = np.random.uniform(-1, 1) * magnitude
 
     height, width = image.shape[:2]
     cx, cy = width // 2, height // 2
 
     transform = cv2.getRotationMatrix2D((cx, cy), -angle, 1.0)
-    image = cv2.warpAffine(image, transform, (width, height), flags = cv2.INTER_LINEAR,
-                           borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.warpAffine(image, transform, (width, height), flags=cv2.INTER_LINEAR,
+                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
     return image
 
 
 # ----
-def do_random_grid_distortion(image, magnitude = 0.3):
+def do_random_grid_distortion(image, magnitude=0.3):
     num_step = 5
     distort = magnitude
 
@@ -192,8 +192,8 @@ def do_random_grid_distortion(image, magnitude = 0.3):
     map_x, map_y = np.meshgrid(xx, yy)
     map_x = map_x.astype(np.float32)
     map_y = map_y.astype(np.float32)
-    image = cv2.remap(image, map_x, map_y, interpolation = cv2.INTER_LINEAR,
-                      borderMode = cv2.BORDER_CONSTANT, borderValue = 0)
+    image = cv2.remap(image, map_x, map_y, interpolation=cv2.INTER_LINEAR,
+                      borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
     return image
 
@@ -203,7 +203,7 @@ def do_random_grid_distortion(image, magnitude = 0.3):
 # https://ciechanow.ski/mesh-transforms/
 # https://stackoverflow.com/questions/53907633/how-to-warp-an-image-using-deformed-mesh
 # http://pythology.blogspot.sg/2014/03/interpolation-on-regular-distorted-grid.html
-def do_random_custom_distortion1(image, magnitude = 0.15):
+def do_random_custom_distortion1(image, magnitude=0.15):
     distort = magnitude
 
     height, width = image.shape
@@ -238,7 +238,7 @@ def do_random_custom_distortion1(image, magnitude = 0.15):
         mask[y0:y1, x0:x1] = 1
 
         mask = mask * image
-        warp = cv2.warpAffine(mask, mat, (width, height), borderMode = cv2.BORDER_REPLICATE)
+        warp = cv2.warpAffine(mask, mat, (width, height), borderMode=cv2.BORDER_REPLICATE)
         distort = np.maximum(distort, warp)
         # distort = distort+warp
 
@@ -246,14 +246,14 @@ def do_random_custom_distortion1(image, magnitude = 0.15):
 
 
 # *** intensity ***
-def do_random_contast(image, magnitude = 0.2):
+def do_random_contast(image, magnitude=0.2):
     alpha = 1 + random.uniform(-1, 1) * magnitude
     image = image.astype(np.float32) * alpha
     image = np.clip(image, 0, 1)
     return image
 
 
-def do_random_block_fade(image, magnitude = 0.3):
+def do_random_block_fade(image, magnitude=0.3):
     size = [0.1, magnitude]
 
     height, width = image.shape
@@ -262,13 +262,15 @@ def do_random_block_fade(image, magnitude = 0.3):
     m = image.copy()
     cv2.rectangle(m, (0, 0), (height, width), 1, 5)
     m = image < 0.5
-    if m.sum() == 0: return image
+    if m.sum() == 0:
+        return image
 
     m = np.where(m)
     y0, y1, x0, x1 = np.min(m[0]), np.max(m[0]), np.min(m[1]), np.max(m[1])
     w = x1 - x0
     h = y1 - y0
-    if w * h < 10: return image
+    if w * h < 10:
+        return image
 
     ew, eh = np.random.uniform(*size, 2)
     ew = int(ew * w)
@@ -284,30 +286,31 @@ def do_random_block_fade(image, magnitude = 0.3):
 
 # *** noise ***
 # https://www.kaggle.com/ren4yu/bengali-morphological-ops-as-image-augmentation
-def do_random_erode(image, magnitude = 2):
+def do_random_erode(image, magnitude=2):
     s = int(round(1 + np.random.uniform(0, 1) * magnitude))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, tuple((s, s)))
-    image = cv2.erode(image, kernel, iterations = 1)
+    image = cv2.erode(image, kernel, iterations=1)
     return image
 
 
-def do_random_dilate(image, magnitude = 1.5):
+def do_random_dilate(image, magnitude=1.5):
     s = int(round(1 + np.random.uniform(0, 1) * magnitude))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, tuple((s, s)))
-    image = cv2.dilate(image, kernel, iterations = 1)
+    image = cv2.dilate(image, kernel, iterations=1)
     return image
 
 
-def do_random_sprinkle(image, magnitude = 0.2):
+def do_random_sprinkle(image, magnitude=0.2):
     size = 16
     num_sprinkle = int(round(1 + np.random.randint(10) * magnitude))
 
     height, width = image.shape
     image = image.copy()
-    image_small = cv2.resize(image, dsize = None, fx = 0.25, fy = 0.25)
+    image_small = cv2.resize(image, dsize=None, fx=0.25, fy=0.25)
     m = np.where(image_small > 0.25)
     num = len(m[0])
-    if num == 0: return image
+    if num == 0:
+        return image
 
     s = size // 2
     i = np.random.choice(num, num_sprinkle)
@@ -319,7 +322,7 @@ def do_random_sprinkle(image, magnitude = 0.2):
 
 
 # https://stackoverflow.com/questions/14435632/impulse-gaussian-and-salt-and-pepper-noise-with-opencv
-def do_random_noise(image, magnitude = 0.15):
+def do_random_noise(image, magnitude=0.15):
     height, width = image.shape
     noise = np.random.uniform(-1, 1, (height, width)) * magnitude
     image = image + noise
@@ -327,7 +330,7 @@ def do_random_noise(image, magnitude = 0.15):
     return image
 
 
-def do_random_line(image, magnitude = 0.2):
+def do_random_line(image, magnitude=0.2):
     num_lines = int(round(1 + np.random.randint(10) * magnitude))
 
     height, width = image.shape
@@ -355,7 +358,7 @@ def do_random_line(image, magnitude = 0.2):
 
     for i in range(num_lines):
         p = np.array([1 / 4, 1 / 4, 1 / 4, 1 / 4, 1, 1])
-        func = np.random.choice([line0, line1, line2, line3, line4, line5], p = p / p.sum())
+        func = np.random.choice([line0, line1, line2, line3, line4, line5], p=p / p.sum())
         (x0, y0), (x1, y1) = func()
 
         color = np.random.uniform(0, 1)
@@ -375,8 +378,8 @@ def make_object_box(image):
     m = m / np.max(m)
     h = m < 0.5
 
-    row = np.any(h, axis = 1)
-    col = np.any(h, axis = 0)
+    row = np.any(h, axis=1)
+    col = np.any(h, axis=0)
     y0, y1 = np.where(row)[0][[0, -1]]
     x0, x1 = np.where(col)[0][[0, -1]]
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  fast_autoaugment_params.py
 
@@ -1009,14 +1009,22 @@ _fa_reduced_svhn = \
      (("Contrast", 0.9932891064746089, 0.46930062926732646), ("Posterize", 0.9033014136780437, 0.5745902253320527)))
 
 
-def fa_resnet50_rimagenet(filter = None):
+def fa_resnet50_rimagenet_policies(filter=None):
+    """
+    Args:
+        filter (list, tuple or set): the augs do not want to be used.
+    """
     policies = _fa_resnet50_rimagenet
     if filter is not None:
         policies = [p for p in policies if not (p[0][0] in filter or p[1][0] in filter)]
     return policies
 
 
-def fa_reduced_svhn():
+def fa_reduced_svhn_policies(filter=None):
+    """
+    Args:
+        filter (list, tuple or set): the augs do not want to be used.
+    """
     policies = _fa_reduced_svhn
     if filter is not None:
         policies = [p for p in policies if not (p[0][0] in filter or p[1][0] in filter)]

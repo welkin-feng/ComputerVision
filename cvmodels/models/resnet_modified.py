@@ -114,13 +114,13 @@ class Bottleneck(nn.Module):
         self.bn1 = norm_layer(first_planes)
         self.act1 = act_layer(inplace = True)
 
-        self.pool = None
+        self.pool_layer = None
         if stride > 1 and use_pooling:
             if pool_type == 'max':
-                self.pool = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
+                self.pool_layer = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
                 stride = 1
             elif pool_type == 'avg':
-                self.pool = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
+                self.pool_layer = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
                 stride = 1
         self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = stride,
                                padding = first_dilation, dilation = first_dilation, groups = cardinality, bias = False)
@@ -155,8 +155,8 @@ class Bottleneck(nn.Module):
 
         x = self.drop_block(x) if self.drop_block is not None else x
         x = self.act2(x)
-        if self.pool is not None:
-            x = self.pool(x)
+        if self.pool_layer is not None:
+            x = self.pool_layer(x)
 
         x = self.conv3(x)
         x = self.bn3(x)

@@ -28,12 +28,12 @@ class CosineLR(_LRScheduler):
                  t_mul: float = 1.,
                  lr_min: float = 0.,
                  decay_rate: float = 1.,
-                 warmup_t = 0,
-                 warmup_lr_init = 0,
-                 warmup_prefix = False,
-                 cycle_limit = 0,
-                 t_in_epochs = True,
-                 last_epoch = -1) -> None:
+                 warmup_t=0,
+                 warmup_lr_init=0,
+                 warmup_prefix=False,
+                 cycle_limit=0,
+                 t_in_epochs=True,
+                 last_epoch=-1) -> None:
 
         assert t_initial > 0
         assert lr_min >= 0
@@ -60,13 +60,14 @@ class CosineLR(_LRScheduler):
         else:
             self.warmup_steps = [1 for _ in self.base_lrs]
 
-    def get_lr(self, t = None):
+    def get_lr(self, t=None):
         t = t or self.last_epoch
         if 0 <= t < self.warmup_t:
             if hasattr(self, 'warmup_steps'):
                 lrs = [self.warmup_lr_init + t * s for s in self.warmup_steps]
             else:
-                lrs = [self.warmup_lr_init + (l_max - self.warmup_lr_init) * t / self.warmup_t for l_max in self.base_lrs]
+                lrs = [self.warmup_lr_init + (l_max - self.warmup_lr_init) *
+                       t / self.warmup_t for l_max in self.base_lrs]
         else:
             if self.warmup_prefix:
                 t = t - self.warmup_t
@@ -85,7 +86,8 @@ class CosineLR(_LRScheduler):
                 lr_min = self.lr_min * gamma
                 lr_max_values = [v * gamma for v in self.base_lrs]
 
-                lrs = [lr_min + 0.5 * (lr_max - lr_min) * (1 + math.cos(math.pi * t_curr / t_i)) for lr_max in lr_max_values]
+                lrs = [lr_min + 0.5 * (lr_max - lr_min) * (1 + math.cos(math.pi * t_curr / t_i))
+                       for lr_max in lr_max_values]
             else:
                 lrs = [self.lr_min * (self.decay_rate ** self.cycle_limit) for _ in self.base_lrs]
         return lrs

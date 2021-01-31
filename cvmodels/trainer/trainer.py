@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  trainer.py
 
@@ -21,13 +21,14 @@ from torch.backends import cudnn
 from tensorboardX import SummaryWriter
 from easydict import EasyDict
 
-from cvmodels.models import *
-from cvmodels.util import *
+from cvmodels.models import get_model
+from cvmodels.util import (Logger, save_checkpoint, load_checkpoint,
+                           get_learning_rate_scheduler, count_parameters)
 
 
 class Trainer(object):
 
-    def __init__(self, work_path, resume = False, config_dict = None):
+    def __init__(self, work_path, resume=False, config_dict=None):
         """
 
         Args:
@@ -41,7 +42,7 @@ class Trainer(object):
         self.args = EasyDict({'work_path': work_path, 'resume': resume})
         # 设置event路径
         # set event path
-        self.writer = SummaryWriter(logdir = self.args.work_path + '/event')
+        self.writer = SummaryWriter(logdir=self.args.work_path + '/event')
 
         if config_dict is None:
             # 从yaml文件中读取配置config
@@ -54,8 +55,8 @@ class Trainer(object):
 
         # 创建logger用于记录日志
         # create logger and write to log.txt
-        self.logger = Logger(log_file_name = self.args.work_path + '/log.txt',
-                             log_level = logging.DEBUG, logger_name = self.config.architecture).get_log()
+        self.logger = Logger(log_file_name=self.args.work_path + '/log.txt',
+                             log_level=logging.DEBUG, logger_name=self.config.architecture).get_log()
 
         self._init_model()
 
@@ -75,13 +76,13 @@ class Trainer(object):
         # 设置optimizer用于反向传播梯度
         # define optimizer
         if self.config.optimize.type == 'SGD':
-            self.optimizer = optim.SGD(self.net.parameters(), lr = self.config.lr_scheduler.base_lr,
-                                       momentum = self.config.optimize.momentum,
-                                       weight_decay = self.config.optimize.weight_decay,
-                                       nesterov = self.config.optimize.nesterov)
+            self.optimizer = optim.SGD(self.net.parameters(), lr=self.config.lr_scheduler.base_lr,
+                                       momentum=self.config.optimize.momentum,
+                                       weight_decay=self.config.optimize.weight_decay,
+                                       nesterov=self.config.optimize.nesterov)
         elif self.config.optimize.type == 'Adam':
-            self.optimizer = optim.Adam(self.net.parameters(), lr = self.config.lr_scheduler.base_lr,
-                                        weight_decay = self.config.optimize.weight_decay)
+            self.optimizer = optim.Adam(self.net.parameters(), lr=self.config.lr_scheduler.base_lr,
+                                        weight_decay=self.config.optimize.weight_decay)
 
         # 从checkpoint中恢复网络模型
         # resume from a checkpoint
@@ -92,7 +93,7 @@ class Trainer(object):
             ckpt_file_name = self.args.work_path + '/' + self.config.ckpt_name + '.pth.tar'
             if self.args.resume:
                 self.best_prec, self.last_epoch = load_checkpoint(
-                    ckpt_file_name, self.net, optimizer = self.optimizer)
+                    ckpt_file_name, self.net, optimizer=self.optimizer)
 
         # 得到用于更新lr的函数
         # get lr scheduler
@@ -108,13 +109,13 @@ class Trainer(object):
         """
         # 加载训练数据 并进行数据扩增
         # load training data & do data augmentation
-        transform_train = self._get_transforms(train_mode = True)
-        transform_test = self._get_transforms(train_mode = False)
+        transform_train = self._get_transforms(train_mode=True)
+        transform_test = self._get_transforms(train_mode=False)
 
         # 得到可用于torch的DataLoader
         # get data loader
-        train_loader = self._get_dataloader(transform_train, train_mode = True)
-        test_loader = self._get_dataloader(transform_test, train_mode = False)
+        train_loader = self._get_dataloader(transform_train, train_mode=True)
+        test_loader = self._get_dataloader(transform_test, train_mode=False)
 
         # 开始训练
         # start training network
@@ -155,7 +156,7 @@ class Trainer(object):
             # move tensor to GPU
             inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-            outputs, loss = self._get_model_outputs(inputs, targets, train_mode = True)
+            outputs, loss = self._get_model_outputs(inputs, targets, train_mode=True)
             forward_time = time.time() - batch_start
 
             # zero the gradient buffers
@@ -171,7 +172,7 @@ class Trainer(object):
             train_loss = _train_loss / (batch_index + 1)
 
             # calculate acc
-            self._calculate_acc(outputs, targets, train_mode = True)
+            self._calculate_acc(outputs, targets, train_mode=True)
             eval_time = time.time() - batch_start - forward_time - backward_time
             # print(f"  --- model forward time: {forward_time:.2f}, backward time: {backward_time:.2f}, "
             #       f"calculate acc time: {eval_time:.2f} | total batch time: {time.time()-batch_start:.2f}")
@@ -201,12 +202,12 @@ class Trainer(object):
             for batch_index, (inputs, targets) in enumerate(test_loader):
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-                outputs, loss = self._get_model_outputs(inputs, targets, train_mode = False)
+                outputs, loss = self._get_model_outputs(inputs, targets, train_mode=False)
 
                 # calculate loss and acc
                 _test_loss += loss.item()
                 test_loss = _test_loss / (batch_index + 1)
-                self._calculate_acc(outputs, targets, train_mode = False)
+                self._calculate_acc(outputs, targets, train_mode=False)
 
         test_acc = self._get_acc()
         self.logger.info(f"   == test loss: {test_loss:.3f} | test acc: {test_acc:.3%}")
@@ -232,7 +233,7 @@ class Trainer(object):
         for param_group in self.optimizer.param_groups:
             return param_group['lr']
 
-    def _get_transforms(self, train_mode = True):
+    def _get_transforms(self, train_mode=True):
         """
         Args:
             train_mode
@@ -243,7 +244,7 @@ class Trainer(object):
         trans = None
         raise NotImplementedError()
 
-    def _get_dataloader(self, transforms, train_mode = True):
+    def _get_dataloader(self, transforms, train_mode=True):
         """
         Args:
             transforms:
@@ -254,7 +255,7 @@ class Trainer(object):
         """
         raise NotImplementedError()
 
-    def _get_model_outputs(self, inputs, targets, train_mode = True):
+    def _get_model_outputs(self, inputs, targets, train_mode=True):
         """
         Args:
             inputs:
@@ -268,7 +269,7 @@ class Trainer(object):
         outputs, loss = None, None
         raise NotImplementedError()
 
-    def _calculate_acc(self, outputs, targets, train_mode = True):
+    def _calculate_acc(self, outputs, targets, train_mode=True):
         """
         Args:
             outputs:

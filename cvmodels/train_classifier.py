@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  train_classifier.py
 
@@ -16,10 +16,10 @@ from cvmodels.trainer import ClassificationTrainer
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description = 'PyTorch CIFAR Dataset Training')
-    parser.add_argument('--work-path', required = True, type = str)
-    parser.add_argument('--resume', action = 'store_true',
-                        help = 'resume from checkpoint')
+    parser = argparse.ArgumentParser(description='PyTorch CIFAR Dataset Training')
+    parser.add_argument('--work-path', required=True, type=str)
+    parser.add_argument('--resume', action='store_true',
+                        help='resume from checkpoint')
     return parser.parse_args()
 
 

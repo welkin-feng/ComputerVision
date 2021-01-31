@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  classification_trainer.py
 
@@ -21,7 +21,7 @@ from cvmodels.trainer import Trainer
 class ClassificationTrainer(Trainer):
     """  """
 
-    def __init__(self, work_path, resume = False, config_dict = None):
+    def __init__(self, work_path, resume=False, config_dict=None):
         super().__init__(work_path, resume, config_dict)
 
         # 设置loss计算函数
@@ -40,20 +40,23 @@ class ClassificationTrainer(Trainer):
         self._acc = 0
         return super().test(test_loader)
 
-    def _get_transforms(self, train_mode = True):
+    def _get_transforms(self, train_mode=True):
         return transforms.Compose(cifar_util.data_augmentation(self.config, train_mode))
 
-    def _get_dataloader(self, transforms, train_mode = True):
+    def _get_dataloader(self, transforms, train_mode=True):
         return cifar_util.get_data_loader(transforms, self.config, train_mode)
 
-    def _get_model_outputs(self, inputs, targets, train_mode = True):
+    def _get_model_outputs(self, inputs, targets, train_mode=True):
         if train_mode:
             if self.config.mixup:
-                inputs, self.targets_a, self.targets_b, self.lam = cifar_util.mixup_data(inputs, targets,
-                                                                                         self.config.mixup_alpha,
-                                                                                         self.device)
+                inputs, self.targets_a, self.targets_b, self.lam = \
+                    cifar_util.mixup_data(
+                        inputs, targets,
+                        self.config.mixup_alpha,
+                        self.device)
                 outputs = self.net(inputs)
-                loss = cifar_util.mixup_criterion(self.criterion, outputs, self.targets_a, self.targets_b, self.lam)
+                loss = cifar_util.mixup_criterion(
+                    self.criterion, outputs, self.targets_a, self.targets_b, self.lam)
             else:
                 outputs = self.net(inputs)
                 if isinstance(outputs, tuple):
@@ -72,15 +75,17 @@ class ClassificationTrainer(Trainer):
 
         return outputs, loss
 
-    def _calculate_acc(self, outputs, targets, train_mode = True):
+    def _calculate_acc(self, outputs, targets, train_mode=True):
         if self.config.mixup:
-            self._acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
-                                                                            self.total, train_mode = train_mode,
-                                                                            lam = self.lam, targets_a = self.targets_a,
-                                                                            targets_b = self.targets_b)
+            self._acc, self.correct, self.total, = \
+                cifar_util.calculate_acc(
+                    outputs, targets, self.config, self.correct, self.total, train_mode=train_mode,
+                    lam=self.lam, targets_a=self.targets_a, targets_b=self.targets_b)
         else:
-            self._acc, self.correct, self.total, = cifar_util.calculate_acc(outputs, targets, self.config, self.correct,
-                                                                            self.total, train_mode = train_mode)
+            self._acc, self.correct, self.total, = \
+                cifar_util.calculate_acc(
+                    outputs, targets, self.config, self.correct,
+                    self.total, train_mode=train_mode)
 
     def _get_acc(self):
         return self._acc

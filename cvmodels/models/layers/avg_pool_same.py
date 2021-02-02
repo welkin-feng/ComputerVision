@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  avg_pool_same.py
 
@@ -37,7 +37,7 @@ class AvgPool2dSame(nn.AvgPool2d):
     """ Tensorflow like 'SAME' wrapper for 2D average pooling
     """
 
-    def __init__(self, kernel_size: int, stride = None, padding = 0, ceil_mode = False, count_include_pad = True):
+    def __init__(self, kernel_size: int, stride=None, padding=0, ceil_mode=False, count_include_pad=True):
         kernel_size = (kernel_size, kernel_size)
         stride = (stride, stride)
         super(AvgPool2dSame, self).__init__(kernel_size, stride, (0, 0), ceil_mode, count_include_pad)

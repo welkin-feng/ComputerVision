@@ -16,7 +16,7 @@ from torch.nn import functional as F
 from torch.utils import model_zoo
 
 ################################################################################
-### Help functions for model architecture
+# Help functions for model architecture
 ################################################################################
 
 # GlobalParams and BlockArgs: Two namedtuples
@@ -262,7 +262,8 @@ class Conv2dStaticSamePadding(nn.Conv2d):
         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         if pad_h > 0 or pad_w > 0:
-            self.static_padding = nn.ZeroPad2d((pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2))
+            self.static_padding = nn.ZeroPad2d(
+                (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2))
         else:
             self.static_padding = Identity()
 
@@ -332,7 +333,8 @@ class MaxPool2dStaticSamePadding(nn.MaxPool2d):
         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         if pad_h > 0 or pad_w > 0:
-            self.static_padding = nn.ZeroPad2d((pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2))
+            self.static_padding = nn.ZeroPad2d(
+                (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2))
         else:
             self.static_padding = Identity()
 
@@ -356,7 +358,7 @@ class Identity(nn.Module):
 
 
 ################################################################################
-### Helper functions for loading model params
+# Helper functions for loading model params
 ################################################################################
 
 # BlockDecoder: A Class for encoding and decoding BlockArgs

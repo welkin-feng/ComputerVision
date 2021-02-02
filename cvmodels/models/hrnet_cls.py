@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  hrnet_cls.py
 
@@ -36,11 +36,11 @@ class HRNetClassification(HighResolutionNet):
         super(HighResolutionNet, self).__init__()
         extra = cfg['EXTRA']
         # stem net
-        self.conv1 = nn.Conv2d(3, 64, kernel_size = 3, stride = 2, padding = 1, bias = False)
-        self.bn1 = nn.BatchNorm2d(64, momentum = BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size = 3, stride = 2, padding = 1, bias = False)
-        self.bn2 = nn.BatchNorm2d(64, momentum = BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace = True)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
+        self.relu = nn.ReLU(inplace=True)
 
         self.stage1_cfg = extra['STAGE1']
         num_channels = self.stage1_cfg['NUM_CHANNELS'][0]
@@ -68,7 +68,8 @@ class HRNetClassification(HighResolutionNet):
         block = blocks_dict[self.stage4_cfg['BLOCK']]
         num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition3 = self._make_transition_layer(pre_stage_channels, num_channels)
-        self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output = True)
+        self.stage4, pre_stage_channels = self._make_stage(
+            self.stage4_cfg, num_channels, multi_scale_output=True)
 
         # Classification Head
         self.incre_modules, self.downsamp_modules, self.final_layer = self._make_head(pre_stage_channels)
@@ -83,7 +84,7 @@ class HRNetClassification(HighResolutionNet):
         # from C, 2C, 4C, 8C to 128, 256, 512, 1024
         incre_modules = []
         for i, channels in enumerate(pre_stage_channels):
-            incre_module = self._make_layer(head_block, channels, head_channels[i], 1, stride = 1)
+            incre_module = self._make_layer(head_block, channels, head_channels[i], 1, stride=1)
             incre_modules.append(incre_module)
         incre_modules = nn.ModuleList(incre_modules)
 
@@ -94,20 +95,20 @@ class HRNetClassification(HighResolutionNet):
             out_channels = head_channels[i + 1] * head_block.expansion
 
             downsamp_module = nn.Sequential(
-                nn.Conv2d(in_channels = in_channels, out_channels = out_channels,
-                          kernel_size = 3, stride = 2, padding = 1),
-                nn.BatchNorm2d(out_channels, momentum = BN_MOMENTUM),
-                nn.ReLU(inplace = True)
+                nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
+                          kernel_size=3, stride=2, padding=1),
+                nn.BatchNorm2d(out_channels, momentum=BN_MOMENTUM),
+                nn.ReLU(inplace=True)
             )
 
             downsamp_modules.append(downsamp_module)
         downsamp_modules = nn.ModuleList(downsamp_modules)
 
         final_layer = nn.Sequential(
-            nn.Conv2d(in_channels = head_channels[3] * head_block.expansion, out_channels = 2048,
-                      kernel_size = 1, stride = 1, padding = 0),
-            nn.BatchNorm2d(2048, momentum = BN_MOMENTUM),
-            nn.ReLU(inplace = True)
+            nn.Conv2d(in_channels=head_channels[3] * head_block.expansion, out_channels=2048,
+                      kernel_size=1, stride=1, padding=0),
+            nn.BatchNorm2d(2048, momentum=BN_MOMENTUM),
+            nn.ReLU(inplace=True)
         )
 
         return incre_modules, downsamp_modules, final_layer
@@ -153,9 +154,9 @@ class HRNetClassification(HighResolutionNet):
         y = self.final_layer(y)
 
         if torch._C._get_tracing_state():
-            y = y.flatten(start_dim = 2).mean(dim = 2)
+            y = y.flatten(start_dim=2).mean(dim=2)
         else:
-            y = F.avg_pool2d(y, kernel_size = y.size()[2:]).view(y.size(0), -1)
+            y = F.avg_pool2d(y, kernel_size=y.size()[2:]).view(y.size(0), -1)
 
         y = self.classifier(y)
 

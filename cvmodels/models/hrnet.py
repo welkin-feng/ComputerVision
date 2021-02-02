@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  hrnet.py
 
@@ -58,11 +58,11 @@ class HighResolutionNet(nn.Module):
         super(HighResolutionNet, self).__init__()
         extra = cfg['EXTRA']
         # stem net
-        self.conv1 = nn.Conv2d(3, 64, kernel_size = 3, stride = 2, padding = 1, bias = False)
-        self.bn1 = nn.BatchNorm2d(64, momentum = BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size = 3, stride = 2, padding = 1, bias = False)
-        self.bn2 = nn.BatchNorm2d(64, momentum = BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace = True)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
+        self.relu = nn.ReLU(inplace=True)
 
         self.stage1_cfg = extra['STAGE1']
         num_channels = self.stage1_cfg['NUM_CHANNELS'][0]
@@ -90,7 +90,8 @@ class HighResolutionNet(nn.Module):
         block = blocks_dict[self.stage4_cfg['BLOCK']]
         num_channels = [num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition3 = self._make_transition_layer(pre_stage_channels, num_channels)
-        self.stage4, pre_stage_channels = self._make_stage(self.stage4_cfg, num_channels, multi_scale_output = True)
+        self.stage4, pre_stage_channels = self._make_stage(
+            self.stage4_cfg, num_channels, multi_scale_output=True)
 
     def _make_transition_layer(self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
@@ -102,9 +103,9 @@ class HighResolutionNet(nn.Module):
                 if num_channels_cur_layer[i] != num_channels_pre_layer[i]:
                     transition_layers.append(nn.Sequential(
                         nn.Conv2d(num_channels_pre_layer[i], num_channels_cur_layer[i],
-                                  3, 1, 1, bias = False),
-                        nn.BatchNorm2d(num_channels_cur_layer[i], momentum = BN_MOMENTUM),
-                        nn.ReLU(inplace = True)))
+                                  3, 1, 1, bias=False),
+                        nn.BatchNorm2d(num_channels_cur_layer[i], momentum=BN_MOMENTUM),
+                        nn.ReLU(inplace=True)))
                 else:
                     transition_layers.append(None)
             else:
@@ -115,20 +116,20 @@ class HighResolutionNet(nn.Module):
                         if j == i - num_branches_pre else inchannels
                     conv3x3s.append(nn.Sequential(
                         nn.Conv2d(inchannels, outchannels,
-                                  3, 2, 1, bias = False),
-                        nn.BatchNorm2d(outchannels, momentum = BN_MOMENTUM),
-                        nn.ReLU(inplace = True)))
+                                  3, 2, 1, bias=False),
+                        nn.BatchNorm2d(outchannels, momentum=BN_MOMENTUM),
+                        nn.ReLU(inplace=True)))
                 transition_layers.append(nn.Sequential(*conv3x3s))
 
         return nn.ModuleList(transition_layers)
 
-    def _make_layer(self, block, inplanes, planes, blocks, stride = 1):
+    def _make_layer(self, block, inplanes, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
-                          kernel_size = 1, stride = stride, bias = False),
-                nn.BatchNorm2d(planes * block.expansion, momentum = BN_MOMENTUM),
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion, momentum=BN_MOMENTUM),
             )
 
         layers = []
@@ -139,7 +140,7 @@ class HighResolutionNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _make_stage(self, layer_config, num_inchannels, multi_scale_output = True):
+    def _make_stage(self, layer_config, num_inchannels, multi_scale_output=True):
         num_modules = layer_config['NUM_MODULES']
         num_branches = layer_config['NUM_BRANCHES']
         num_blocks = layer_config['NUM_BLOCKS']
@@ -198,11 +199,11 @@ class HighResolutionNet(nn.Module):
 
         return y_list
 
-    def init_weights(self, pretrained = '', ):
+    def init_weights(self, pretrained='', ):
         print('=> init weights from normal distribution')
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode = 'fan_out', nonlinearity = 'relu')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -213,10 +214,10 @@ class HighResolutionNet(nn.Module):
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict.keys()}
             print('=> loading pretrained model weight length {}'.format(len(pretrained_dict)))
             model_dict.update(pretrained_dict)
-            self.load_state_dict(model_dict, strict = False)
+            self.load_state_dict(model_dict, strict=False)
 
 
-def hrnet(config, pretrained_path = '', **kwargs):
+def hrnet(config, pretrained_path='', **kwargs):
     model = HighResolutionNet(config, **kwargs)
     model.init_weights(pretrained_path)
     return model

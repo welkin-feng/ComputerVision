@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  cifar_util.py
 
@@ -52,12 +52,12 @@ class Cutout(object):
         return img
 
 
-def data_augmentation(config, train_mode = True):
+def data_augmentation(config, train_mode=True):
     aug = []
     if train_mode:
         # random crop
         if config.augmentation.random_crop:
-            aug.append(transforms.RandomCrop(config.input_size, padding = 4))
+            aug.append(transforms.RandomCrop(config.input_size, padding=4))
         # horizontal filp
         if config.augmentation.random_horizontal_filp:
             aug.append(transforms.RandomHorizontalFlip())
@@ -74,22 +74,22 @@ def data_augmentation(config, train_mode = True):
 
     if train_mode and config.augmentation.cutout:
         # cutout
-        aug.append(Cutout(n_holes = config.augmentation.holes,
-                          length = config.augmentation.length))
+        aug.append(Cutout(n_holes=config.augmentation.holes,
+                          length=config.augmentation.length))
     return aug
 
 
 def get_data_loader(transform, config, train_mode):
     assert config.dataset in ['cifar10', 'cifar100']
     if config.dataset == "cifar10":
-        dataset = torchvision.datasets.CIFAR10(root = config.data_path, train = train_mode, download = True,
-                                               transform = transform)
+        dataset = torchvision.datasets.CIFAR10(root=config.data_path, train=train_mode, download=True,
+                                               transform=transform)
     else:
         dataset = torchvision.datasets.CIFAR100(
-            root = config.data_path, train = train_mode, download = True, transform = transform)
+            root=config.data_path, train=train_mode, download=True, transform=transform)
 
-    data_loader = DataLoader(dataset, batch_size = config.batch_size,
-                             shuffle = train_mode, num_workers = config.workers)
+    data_loader = DataLoader(dataset, batch_size=config.batch_size,
+                             shuffle=train_mode, num_workers=config.workers)
 
     return data_loader
 
@@ -113,8 +113,8 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 
-def calculate_acc(outputs, targets, config, correct = 0, total = 0, train_mode = True, **kwargs):
-    if not config.dataset in ['cifar10', 'cifar100']:
+def calculate_acc(outputs, targets, config, correct=0, total=0, train_mode=True, **kwargs):
+    if config.dataset not in ['cifar10', 'cifar100']:
         raise ValueError("`dataset` in `config` should be 'cifar10' or 'cifar100'")
     _, predicted = outputs.max(1)
     total += targets.size(0)

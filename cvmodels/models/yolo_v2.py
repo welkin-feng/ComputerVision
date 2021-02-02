@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  yolo_v2.py
 
@@ -32,38 +32,38 @@ class Darknet19(nn.Module):
         super().__init__()
         LReLU = nn.LeakyReLU
 
-        self.conv1 = conv_bn_activation(3, 32, 3, 1, 1, activation = LReLU(0.1, inplace = True))
+        self.conv1 = conv_bn_activation(3, 32, 3, 1, 1, activation=LReLU(0.1, inplace=True))
         self.layer1 = nn.Sequential(
             nn.MaxPool2d(2),
-            conv_bn_activation(32, 64, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
+            conv_bn_activation(32, 64, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
         )
         self.layer2 = nn.Sequential(
             nn.MaxPool2d(2),
-            conv_bn_activation(64, 128, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(128, 64, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(64, 128, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
+            conv_bn_activation(64, 128, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(128, 64, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(64, 128, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
         )
         self.layer3 = nn.Sequential(
             nn.MaxPool2d(2),
-            conv_bn_activation(128, 256, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(256, 128, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(128, 256, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
+            conv_bn_activation(128, 256, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(256, 128, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(128, 256, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
         )
         self.layer4 = nn.Sequential(
             nn.MaxPool2d(2),
-            conv_bn_activation(256, 512, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(512, 256, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(256, 512, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(512, 256, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(256, 512, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
+            conv_bn_activation(256, 512, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(512, 256, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(256, 512, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(512, 256, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(256, 512, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
         )
         self.layer5 = nn.Sequential(
             nn.MaxPool2d(2),
-            conv_bn_activation(512, 1024, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(1024, 512, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(512, 1024, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(1024, 512, 1, activation = LReLU(0.1, inplace = True)),
-            conv_bn_activation(512, 1024, 3, 1, 1, activation = LReLU(0.1, inplace = True)),
+            conv_bn_activation(512, 1024, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(1024, 512, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(512, 1024, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(1024, 512, 1, activation=LReLU(0.1, inplace=True)),
+            conv_bn_activation(512, 1024, 3, 1, 1, activation=LReLU(0.1, inplace=True)),
         )
         self.passthrough_layer = PassthroughLayer()
 
@@ -74,19 +74,19 @@ class Darknet19(nn.Module):
         out = self.layer3(out)
         feature4 = self.layer4(out)  # [N, 512, 26, 26]
         feature5 = self.layer5(feature4)  # [N, 1024, 13, 13]
-        out = self.passthrough_layer(high_res_feature = feature4, low_res_feature = feature5)
+        out = self.passthrough_layer(high_res_feature=feature4, low_res_feature=feature5)
         return out
 
 
 class PassthroughLayer(nn.Module):
-    def __init__(self, backbone = None):
+    def __init__(self, backbone=None):
         super().__init__()
         self.backbone = backbone
 
-    def forward(self, images = None, high_res_feature = None, low_res_feature = None):
+    def forward(self, images=None, high_res_feature=None, low_res_feature=None):
         if high_res_feature is not None and low_res_feature is not None:
             return torch.cat((low_res_feature, high_res_feature[..., 0::2, 0::2], high_res_feature[..., 0::2, 1::2],
-                              high_res_feature[..., 1::2, 0::2], high_res_feature[..., 1::2, 1::2]), dim = 1)
+                              high_res_feature[..., 1::2, 0::2], high_res_feature[..., 1::2, 1::2]), dim=1)
 
         if self.backbone is None:
             raise ValueError("`high_res_feature` and `low_res_feature` should not be None")
@@ -95,7 +95,7 @@ class PassthroughLayer(nn.Module):
 
         high_res_feature, low_res_feature = self.backbone(images).values()
         return torch.cat((low_res_feature, high_res_feature[..., 0::2, 0::2], high_res_feature[..., 0::2, 1::2],
-                          high_res_feature[..., 1::2, 0::2], high_res_feature[..., 1::2, 1::2]), dim = 1)
+                          high_res_feature[..., 1::2, 0::2], high_res_feature[..., 1::2, 1::2]), dim=1)
 
 
 class YOLOv2(GeneralizedYOLO):
@@ -107,13 +107,13 @@ class YOLOv2(GeneralizedYOLO):
 
     def __init__(self, backbone,
                  # Box parameters
-                 num_classes, anchor_boxes = None,
+                 num_classes, anchor_boxes=None,
                  # for testing
-                 box_iou_thresh = 0.6, nms_threshold = 0.5,
+                 box_iou_thresh=0.6, nms_threshold=0.5,
                  # transform parameters
-                 min_size = (288,), max_size = 608,
-                 image_mean = None, image_std = None,
-                 use_transform = True, **kwargs):
+                 min_size=(288,), max_size=608,
+                 image_mean=None, image_std=None,
+                 use_transform=True, **kwargs):
         """
         Args:
             backbone:
@@ -191,7 +191,7 @@ class YOLOv2Postprocess(nn.Module):
         self.nms_thresh = nms_thresh
         self.box_iou_thresh_train = kwargs.get('box_iou_thresh_train', 0.1)
 
-    def forward(self, boxes_offset, image_sizes, targets = None, get_prior_anchor_loss = False, **kwargs):
+    def forward(self, boxes_offset, image_sizes, targets=None, get_prior_anchor_loss=False, **kwargs):
         """
         Args:
             boxes_offset (Tensor): shape [N, 7*7*30] in YOLOv1, [N, 13, 13, 125] in YOLOv2
@@ -215,7 +215,8 @@ class YOLOv2Postprocess(nn.Module):
         result, losses = [], torch.scalar_tensor(0.)
         if self.training:
             self.check_targets(targets)
-            assert len(targets) == len(boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
+            assert len(targets) == len(
+                boxes_offset), "the length of `boxes_offset` don't match the length of `targets`"
 
             noobject_scale = kwargs.get('noobject_scale', 1)
             class_scale = kwargs.get('class_scale', 1)
@@ -226,7 +227,7 @@ class YOLOv2Postprocess(nn.Module):
             losses = self.comupute_loss(proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, targets,
                                         image_sizes, noobject_scale, class_scale, coord_scale, object_scale)
             losses = losses['class_losses'] + losses['coord_losses'] + losses['obj_score_losses'] + \
-                     losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
+                losses['noobj_score_losses'] + prior_scale * prior_anchor_losses
 
         _comupute_loss_time = time.time() - _start_time - _get_proposed_boxes_time
 
@@ -236,17 +237,19 @@ class YOLOv2Postprocess(nn.Module):
         # filter
         cls_list, loc_list, score_list = self.filter_proposals(proposed_boxes_classes, proposed_boxes_xyxy,
                                                                proposed_boxes_score)
-        _filter_proposals_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - _bboxes_transform_time
+        _filter_proposals_time = time.time() - _start_time - _get_proposed_boxes_time - \
+            _comupute_loss_time - _bboxes_transform_time
         # nms
         pred_boxes_label, pred_boxes_loc, pred_boxes_score = self.nms(cls_list, loc_list, score_list)
         num_images = len(pred_boxes_loc)
         for i in range(num_images):
             result.append(
-                dict(boxes = pred_boxes_loc[i],
-                     scores = pred_boxes_score[i],
-                     labels = pred_boxes_label[i])
+                dict(boxes=pred_boxes_loc[i],
+                     scores=pred_boxes_score[i],
+                     labels=pred_boxes_label[i])
             )
-        _nms_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - _bboxes_transform_time - _filter_proposals_time
+        _nms_time = time.time() - _start_time - _get_proposed_boxes_time - _comupute_loss_time - \
+            _bboxes_transform_time - _filter_proposals_time
         # print(f"  - get_proposed_boxes_time: {_get_proposed_boxes_time:.2f}, "
         #       f"comupute_loss_time: {_comupute_loss_time:.2f}, "
         #       f"bboxes_transform_time: {_bboxes_transform_time:.2f}, "
@@ -267,24 +270,25 @@ class YOLOv2Postprocess(nn.Module):
         proposed_boxes_classes = boxes_offset[..., :self.num_classes]  # [N, W, H, 5, 20]
         proposed_boxes_score = torch.sigmoid(boxes_offset[..., -1:])  # [N, W, H, 5, 1]
 
-        boxes_offset_xy = torch.sigmoid(boxes_offset[..., self.num_classes:self.num_classes + 2])  # [N, W, H, 5, 2]
+        boxes_offset_xy = torch.sigmoid(
+            boxes_offset[..., self.num_classes:self.num_classes + 2])  # [N, W, H, 5, 2]
         boxes_offset_wh = boxes_offset[..., self.num_classes + 2:self.num_classes + 4]  # [N, W, H, 5, 2]
 
         prior_anchor_losses = 0
         if get_prior_anchor_loss:
             prior_anchor_losses = F.mse_loss(boxes_offset_xy, torch.zeros_like(boxes_offset_xy) + 0.5) + \
-                                  F.mse_loss(boxes_offset_wh, torch.zeros_like(boxes_offset_wh))
+                F.mse_loss(boxes_offset_wh, torch.zeros_like(boxes_offset_wh))
 
         x_grid = torch.arange(H).unsqueeze(1).repeat(1, W).to(boxes_offset)
         y_grid = torch.arange(W).repeat(H, 1).to(boxes_offset)
-        anchors_xy = torch.stack((x_grid, y_grid), dim = -1).unsqueeze(-2).to(boxes_offset)  # [W, H, 1, 2]
+        anchors_xy = torch.stack((x_grid, y_grid), dim=-1).unsqueeze(-2).to(boxes_offset)  # [W, H, 1, 2]
         anchors_wh = boxes_offset.new(self.anchors)  # [5, 2]
 
         # 从特征图中的坐标转换成原图中的坐标
         # convert coordinates from feature map to coordinates in the original image
         proposed_boxes_xy = (anchors_xy + boxes_offset_xy) * self.size_divisible
         proposed_boxes_wh = anchors_wh * boxes_offset_wh.exp()
-        proposed_boxes_xywh = torch.cat((proposed_boxes_xy, proposed_boxes_wh), dim = -1)
+        proposed_boxes_xywh = torch.cat((proposed_boxes_xy, proposed_boxes_wh), dim=-1)
 
         return proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score, prior_anchor_losses
 
@@ -312,7 +316,7 @@ class YOLOv2Postprocess(nn.Module):
             if boxes_cls_list[i].numel() > 0:
                 # cls_probs = torch.softmax(boxes_cls_list[i], -1)
                 # labels = torch.argmax(cls_probs, dim = -1)
-                labels = torch.argmax(boxes_cls_list[i], dim = -1)
+                labels = torch.argmax(boxes_cls_list[i], dim=-1)
                 if self.training:
                     label_list.append(labels)
                     loc.append(boxes_loc_list[i])
@@ -332,7 +336,7 @@ class YOLOv2Postprocess(nn.Module):
         return label_list, loc, score
 
     def comupute_loss(self, proposed_boxes_classes, proposed_boxes_xywh, proposed_boxes_score,
-                      targets, image_sizes, noobject_scale = 1, class_scale = 1, coord_scale = None, object_scale = 5):
+                      targets, image_sizes, noobject_scale=1, class_scale=1, coord_scale=None, object_scale=5):
         """
         for pred_box in all prediction box:
             if (max iou pred_box has with all truth box < threshold):
@@ -376,13 +380,14 @@ class YOLOv2Postprocess(nn.Module):
             p_boxes_score = proposed_boxes_score[i]
 
             # 计算 背景 损失
-            noobj_score_loss = self._compute_noobj_loss(proposed_boxes_xyxy[i], p_boxes_score, t_boxes, noobject_scale)
+            noobj_score_loss = self._compute_noobj_loss(
+                proposed_boxes_xyxy[i], p_boxes_score, t_boxes, noobject_scale)
 
             # target transform to xywh
             t_boxes = self.bboxes_transform_to_xywh(t_boxes)
             # [t_boxes.shape[0], 1]
             if cal_coord_scale:
-                coord_scale = 2 - t_boxes[:, 2:].prod(dim = -1, keepdim = True) / (image_size[0] * image_size[1])
+                coord_scale = 2 - t_boxes[:, 2:].prod(dim=-1, keepdim=True) / (image_size[0] * image_size[1])
             t_boxes = t_boxes / self.size_divisible
 
             # 得到每个gt落在哪个cell，坐标为(x_idx, y_idx)，对应shape为[W, H, ...]的Tensor
@@ -390,7 +395,7 @@ class YOLOv2Postprocess(nn.Module):
             # 得到与每个gt匹配的anchor的idx
             t_box_correspond_anchor_idx = self._get_matched_anchor_idx(t_boxes)
             # 取与gt匹配的原始anchor对应的预测框
-            correspond_box_idx = torch.cat((t_box_cell_idx, t_box_correspond_anchor_idx), dim = -1).t().tolist()
+            correspond_box_idx = torch.cat((t_box_cell_idx, t_box_correspond_anchor_idx), dim=-1).t().tolist()
             # 计算 目标 损失
             class_loss, coord_loss, obj_score_loss = self._compute_obj_loss(t_boxes, t_labels, correspond_box_idx,
                                                                             p_boxes_cls, p_boxes_xywh, p_boxes_score,
@@ -400,10 +405,10 @@ class YOLOv2Postprocess(nn.Module):
             coord_losses += coord_loss
             obj_score_losses += obj_score_loss
 
-        losses = dict(class_losses = class_losses / len(targets),
-                      coord_losses = coord_losses / len(targets),
-                      obj_score_losses = obj_score_losses / len(targets),
-                      noobj_score_losses = noobj_score_losses / len(targets))
+        losses = dict(class_losses=class_losses / len(targets),
+                      coord_losses=coord_losses / len(targets),
+                      obj_score_losses=obj_score_losses / len(targets),
+                      noobj_score_losses=noobj_score_losses / len(targets))
         return losses
 
     @staticmethod
@@ -413,17 +418,17 @@ class YOLOv2Postprocess(nn.Module):
         for t in range(len(t_boxes)):
             t_box = t_boxes[t]  # (x0, y0, x1, y1)
 
-            xx0 = p_boxes[..., 0].clamp(min = t_box[0].item())  # [H, W, 5,]
-            yy0 = p_boxes[..., 1].clamp(min = t_box[1].item())
-            xx1 = p_boxes[..., 2].clamp(max = t_box[2].item())
-            yy1 = p_boxes[..., 3].clamp(max = t_box[3].item())
-            overlap = (xx1 - xx0).clamp(min = 0) * (yy1 - yy0).clamp(min = 0)  # [H, W, 5,]
+            xx0 = p_boxes[..., 0].clamp(min=t_box[0].item())  # [H, W, 5,]
+            yy0 = p_boxes[..., 1].clamp(min=t_box[1].item())
+            xx1 = p_boxes[..., 2].clamp(max=t_box[2].item())
+            yy1 = p_boxes[..., 3].clamp(max=t_box[3].item())
+            overlap = (xx1 - xx0).clamp(min=0) * (yy1 - yy0).clamp(min=0)  # [H, W, 5,]
             pred_area = (p_boxes[..., 2] - p_boxes[..., 0]) * (p_boxes[..., 3] - p_boxes[..., 1])
             t_box_area = (t_box[2] - t_box[0]) * (t_box[3] - t_box[1])
 
             all_pred_box_iou[..., t] = overlap / (pred_area + t_box_area - overlap)  # [H, W, 5,]
         # 每个 预测框 的max_iou小于0.6的，记为背景bg，计算noobj loss
-        noobj_mask = all_pred_box_iou.max(dim = -1)[0] < 0.6
+        noobj_mask = all_pred_box_iou.max(dim=-1)[0] < 0.6
         bg_boxes_score = p_boxes_score[noobj_mask]
         noobj_score_loss = noobject_scale * F.mse_loss(bg_boxes_score, torch.zeros_like(bg_boxes_score))
         return noobj_score_loss
@@ -436,9 +441,9 @@ class YOLOv2Postprocess(nn.Module):
         cor_box_score = p_boxes_score[correspond_box_idx]  # [t_boxes.shape[0],1]
         # 计算其coord loss, class loss 和 iou_score loss
         class_loss = class_scale * F.cross_entropy(cor_box_cls, t_labels)
-        coord_loss = torch.mean(coord_scale * (F.mse_loss(cor_box_xywh[:, :2], t_boxes[:, :2], reduction = 'none') +
+        coord_loss = torch.mean(coord_scale * (F.mse_loss(cor_box_xywh[:, :2], t_boxes[:, :2], reduction='none') +
                                                F.mse_loss(cor_box_xywh[:, 2:].log(), t_boxes[:, 2:].log(),
-                                                          reduction = 'none')))
+                                                          reduction='none')))
         obj_score_loss = object_scale * F.mse_loss(cor_box_score, torch.ones_like(cor_box_score))
 
         return class_loss, coord_loss, obj_score_loss
@@ -449,9 +454,9 @@ class YOLOv2Postprocess(nn.Module):
         for a in range(len(self.anchors)):
             anchor = t_boxes.new(self.anchors[a]) / self.size_divisible  # shape of (2,)
             overlap = torch.min(t_boxes[:, 2], anchor[0]) * torch.min(t_boxes[:, 3], anchor[1])
-            prior_anchor_iou[:, a] = overlap / (t_boxes[:, 2:].prod(dim = -1) + anchor.prod(dim = -1) - overlap)
+            prior_anchor_iou[:, a] = overlap / (t_boxes[:, 2:].prod(dim=-1) + anchor.prod(dim=-1) - overlap)
         # 返回与每个gt匹配的anchor的idx
-        return prior_anchor_iou.argmax(dim = -1).reshape(-1, 1).long()  # [t_boxes.shape[0],]
+        return prior_anchor_iou.argmax(dim=-1).reshape(-1, 1).long()  # [t_boxes.shape[0],]
 
     @staticmethod
     def bboxes_transform(boxes_xywh, image_sizes):
@@ -499,7 +504,8 @@ class YOLOv2Postprocess(nn.Module):
         for t in targets:
             assert t["boxes"].dtype.is_floating_point, 'target boxes must of float type'
             assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
-            assert len(t["boxes"]) == len(t["labels"]), "the length of boxes do not match the length of labels"
+            assert len(t["boxes"]) == len(
+                t["labels"]), "the length of boxes do not match the length of labels"
 
 
 def yolo_v2_darknet19(num_classes, **kwargs):
@@ -507,13 +513,13 @@ def yolo_v2_darknet19(num_classes, **kwargs):
     return YOLOv2(backbone, num_classes, **kwargs)
 
 
-def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
+def yolo_v2_resnet50(num_classes, pretrained_backbone=False, **kwargs):
     from torchvision.models.resnet import resnet50
     from torchvision.models._utils import IntermediateLayerGetter
 
-    backbone = resnet50(pretrained = pretrained_backbone)
+    backbone = resnet50(pretrained=pretrained_backbone)
     return_layers = {'layer3': 'feat3', 'layer4': 'feat4'}
-    body = IntermediateLayerGetter(backbone, return_layers = return_layers)
+    body = IntermediateLayerGetter(backbone, return_layers=return_layers)
     backbone = nn.Sequential(body)
     backbone = PassthroughLayer(backbone)
     backbone.out_channels = 6144
@@ -528,8 +534,8 @@ def yolo_v2_resnet50(num_classes, pretrained_backbone = False, **kwargs):
     return YOLOv2(backbone, num_classes, anchor_boxes, **kwargs)
 
 
-def yolo_v2_resnet50_backbone(num_classes, pretrained_backbone = False, **kwargs):
+def yolo_v2_resnet50_backbone(num_classes, pretrained_backbone=False, **kwargs):
     from torchvision.models.resnet import resnet50
-    backbone = resnet50(pretrained = pretrained_backbone)
+    backbone = resnet50(pretrained=pretrained_backbone)
     backbone.fc = nn.Linear(512 * 4, num_classes)
     return backbone

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  vgg.py
 
@@ -22,14 +22,14 @@ def conv3x3_block(in_channels, out_channels, depth, use_bn):
     block = [conv_bn_relu(in_channels, out_channels, 3, 1, 1, use_bn)]
     for _ in range(depth - 1):
         block += [conv_bn_relu(out_channels, out_channels, 3, 1, 1, use_bn)]
-    block += [nn.MaxPool2d(kernel_size = 2)]
+    block += [nn.MaxPool2d(kernel_size=2)]
     return nn.Sequential(*block)
 
 
 class VGG(nn.Module):
     """  """
 
-    def __init__(self, num_classes, depth = 16, in_size = 224, use_batch_norm = False):
+    def __init__(self, num_classes, depth=16, in_size=224, use_batch_norm=False):
         """ Constructor for VGG """
         super().__init__()
         assert depth in (16, 19), 'depth should be 16 or 19'
@@ -51,10 +51,10 @@ class VGG(nn.Module):
         self.conv = nn.Sequential(*net)
         self.flatten = nn.Flatten()
         self.fc = nn.Sequential(nn.Linear(512 * final_size ** 2, 4096),
-                                nn.ReLU(inplace = True),
+                                nn.ReLU(inplace=True),
                                 nn.Dropout(),
                                 nn.Linear(4096, 4096),
-                                nn.ReLU(inplace = True),
+                                nn.ReLU(inplace=True),
                                 nn.Dropout(),
                                 nn.Linear(4096, num_classes))
 
@@ -80,20 +80,20 @@ class VGG(nn.Module):
         return output
 
 
-def vgg16(num_classes, input_size = 224, **kwargs):
+def vgg16(num_classes, input_size=224, **kwargs):
     return VGG(num_classes, 16, input_size)
 
 
-def vgg16_bn(num_classes, input_size = 224, **kwargs):
-    return VGG(num_classes, 16, input_size, use_batch_norm = True)
+def vgg16_bn(num_classes, input_size=224, **kwargs):
+    return VGG(num_classes, 16, input_size, use_batch_norm=True)
 
 
-def vgg19(num_classes, input_size = 224, **kwargs):
+def vgg19(num_classes, input_size=224, **kwargs):
     return VGG(num_classes, 19, input_size)
 
 
-def vgg19_bn(num_classes, input_size = 224, **kwargs):
-    return VGG(num_classes, 19, input_size, use_batch_norm = True)
+def vgg19_bn(num_classes, input_size=224, **kwargs):
+    return VGG(num_classes, 19, input_size, use_batch_norm=True)
 
 
 if __name__ == '__main__':

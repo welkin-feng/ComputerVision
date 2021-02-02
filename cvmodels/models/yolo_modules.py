@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  yolo_modules.py
 
@@ -20,7 +20,7 @@ from .detection_utils import ImageList
 
 class GeneralizedYOLO(torch.nn.Module):
 
-    def __init__(self, backbone, reg_net, postprocess, transform, use_transform = True):
+    def __init__(self, backbone, reg_net, postprocess, transform, use_transform=True):
         """
         Args:
             backbone (torch.nn.Module): should have attribute `out_channels`
@@ -35,7 +35,7 @@ class GeneralizedYOLO(torch.nn.Module):
         self.postprocess = postprocess
         self.use_transform = use_transform
 
-    def forward(self, images, targets = None, **kwargs):
+    def forward(self, images, targets=None, **kwargs):
         """
         Args:
             images (Tensor[N, C, H, W] or list[Tensor[C, H, W]]): images to be processed
@@ -53,7 +53,8 @@ class GeneralizedYOLO(torch.nn.Module):
             if targets is None:
                 raise ValueError("In training mode, targets should be passed")
             else:
-                assert len(targets) == len(images), "the length of `images` do not match the length of `targets`"
+                assert len(targets) == len(
+                    images), "the length of `images` do not match the length of `targets`"
 
         start = time.time()
         original_image_sizes = [img.shape[-2:] for img in images]
@@ -64,11 +65,13 @@ class GeneralizedYOLO(torch.nn.Module):
             images, targets = self.transform(images, targets)
         trans_time = time.time() - start
         features = self.backbone(images.tensors)
-        # boxes (Tensor): original boxes without filtering, [N, 7*7*30] in YOLOv1 and [N, 125, 13, 13] in YOLOv2
+        # boxes (Tensor): original boxes without filtering, [N, 7*7*30] in YOLOv1 
+        # and [N, 125, 13, 13] in YOLOv2
         proposed_boxes_bias = self.reg_net(features)
         backbone_time = time.time() - start - trans_time
         #
-        detections, detector_losses = self.postprocess(proposed_boxes_bias, images.image_sizes, targets, **kwargs)
+        detections, detector_losses = self.postprocess(
+            proposed_boxes_bias, images.image_sizes, targets, **kwargs)
         postprocess_time = time.time() - start - trans_time - backbone_time
         if self.use_transform:
             detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
@@ -95,7 +98,7 @@ class GeneralizedYOLOTransform(torch.nn.Module):
     It returns a ImageList for the inputs, and a List[Dict[Tensor]] for the targets
     """
 
-    def __init__(self, min_size, max_size, image_mean, image_std, downsample_factor = 32):
+    def __init__(self, min_size, max_size, image_mean, image_std, downsample_factor=32):
         super().__init__()
         if not isinstance(min_size, (list, tuple)):
             min_size = (min_size,)
@@ -105,7 +108,7 @@ class GeneralizedYOLOTransform(torch.nn.Module):
         self.image_std = image_std
         self.size_divisible = downsample_factor
 
-    def forward(self, images, targets = None):
+    def forward(self, images, targets=None):
         if isinstance(images, torch.Tensor) and images.dim() != 4:
             raise ValueError("images is expected to be a 4d Tensor of shape [N, C, H, W] or "
                              "a list of 3d tensors of shape [C, H, W], got {}".format(images.shape))
@@ -129,8 +132,8 @@ class GeneralizedYOLOTransform(torch.nn.Module):
 
     def normalize(self, image):
         dtype, device = image.dtype, image.device
-        mean = torch.as_tensor(self.image_mean, dtype = dtype, device = device)
-        std = torch.as_tensor(self.image_std, dtype = dtype, device = device)
+        mean = torch.as_tensor(self.image_mean, dtype=dtype, device=device)
+        std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
         return (image - mean[:, None, None]) / std[:, None, None]
 
     def resize(self, image, target):
@@ -150,14 +153,14 @@ class GeneralizedYOLOTransform(torch.nn.Module):
         if max_size * scale_factor > self.max_size:
             scale_factor = self.max_size / max_size
         image = torch.nn.functional.interpolate(
-            image[None], scale_factor = scale_factor, mode = 'bilinear', align_corners = False)[0]
+            image[None], scale_factor=scale_factor, mode='bilinear', align_corners=False)[0]
 
         if target is None:
             return image, target
 
         bbox = target["boxes"]
         bbox = self.resize_boxes(bbox, (h, w), image.shape[-2:])
-        target = dict(boxes = bbox, labels = target['labels'])
+        target = dict(boxes=bbox, labels=target['labels'])
 
         return image, target
 
@@ -198,4 +201,4 @@ class GeneralizedYOLOTransform(torch.nn.Module):
         xmax = xmax * ratio_width
         ymin = ymin * ratio_height
         ymax = ymax * ratio_height
-        return torch.stack((xmin, ymin, xmax, ymax), dim = 1)
+        return torch.stack((xmin, ymin, xmax, ymax), dim=1)

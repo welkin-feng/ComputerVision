@@ -7,12 +7,14 @@
 
 # Credits:
 # RAdam -->  https://github.com/LiyuanLucasLiu/RAdam
-# Lookahead --> rewritten by lessw2020, but big thanks to Github @LonePatient and @RWightman for ideas from their code.
+# Lookahead --> rewritten by lessw2020, but big thanks to Github @LonePatient and @RWightman
+# for ideas from their code.
 # Lookahead paper --> MZhang,G Hinton  https://arxiv.org/abs/1907.08610
 
 # summary of changes:
-# full code integration with all updates at param level instead of group, moves slow weights into state dict (from generic weights),
-# supports group learning rates (thanks @SHolderbach), fixes sporadic load from saved model issues.
+# full code integration with all updates at param level instead of group, moves slow weights into
+# state dict (from generic weights), supports group learning rates (thanks @SHolderbach), fixes
+# sporadic load from saved model issues.
 # changes 8/31/19 - fix references to *self*.N_sma_threshold;
 # changed eps to 1e-5 as better default than 1e-8.
 
@@ -23,8 +25,8 @@ from torch.optim.optimizer import Optimizer
 
 class Ranger(Optimizer):
 
-    def __init__(self, params, lr = 1e-3, alpha = 0.5, k = 6, N_sma_threshhold = 5, betas = (.95, 0.999), eps = 1e-5,
-                 weight_decay = 0):
+    def __init__(self, params, lr=1e-3, alpha=0.5, k=6, N_sma_threshhold=5, betas=(.95, 0.999), eps=1e-5,
+                 weight_decay=0):
         # parameter checks
         if not 0.0 <= alpha <= 1.0:
             raise ValueError(f'Invalid slow update rate: {alpha}')
@@ -38,11 +40,12 @@ class Ranger(Optimizer):
         # parameter comments:
         # beta1 (momentum) of .95 seems to work better than .90...
         # N_sma_threshold of 5 seems better in testing than 4.
-        # In both cases, worth testing on your dataset (.90 vs .95, 4 vs 5) to make sure which works best for you.
+        # In both cases, worth testing on your dataset (.90 vs .95, 4 vs 5) to
+        # make sure which works best for you.
 
         # prep defaults and init torch.optim base
-        defaults = dict(lr = lr, alpha = alpha, k = k, step_counter = 0, betas = betas,
-                        N_sma_threshhold = N_sma_threshhold, eps = eps, weight_decay = weight_decay)
+        defaults = dict(lr=lr, alpha=alpha, k=k, step_counter=0, betas=betas,
+                        N_sma_threshhold=N_sma_threshhold, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
         # adjustable threshold
@@ -65,7 +68,8 @@ class Ranger(Optimizer):
 
         # lookahead weights
         # 9/2/19 - lookahead param tensors have been moved to state storage.
-        # This should resolve issues with load/save where weights were left in GPU memory from first load, slowing down future runs.
+        # This should resolve issues with load/save where weights were left in
+        # GPU memory from first load, slowing down future runs.
 
         # self.slow_weights = [[p.clone().detach() for p in group['params']]
         #                     for group in self.param_groups]
@@ -78,9 +82,10 @@ class Ranger(Optimizer):
         print("set state called")
         super(Ranger, self).__setstate__(state)
 
-    def step(self, closure = None):
+    def step(self, closure=None):
         loss = None
-        # note - below is commented out b/c I have other work that passes back the loss as a float, and thus not a callable closure.
+        # note - below is commented out b/c I have other work that passes back the loss as a float,
+        # and thus not a callable closure.
         # Uncomment if you need to use the actual closure...
 
         # if closure is not None:
@@ -138,8 +143,8 @@ class Ranger(Optimizer):
                     buffered[1] = N_sma
                     if N_sma > self.N_sma_threshhold:
                         step_size = math.sqrt(
-                            (1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2) / N_sma * N_sma_max / (
-                                    N_sma_max - 2)) / (1 - beta1 ** state['step'])
+                            (1 - beta2_t) * (N_sma - 4) / (N_sma_max - 4) * (N_sma - 2) /
+                            N_sma * N_sma_max / (N_sma_max - 2)) / (1 - beta1 ** state['step'])
                     else:
                         step_size = 1.0 / (1 - beta1 ** state['step'])
                     buffered[2] = step_size

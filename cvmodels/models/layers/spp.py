@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  spp.py
 
@@ -27,7 +27,7 @@ class SPP(nn.Module):
         assert (in_size >= out_size)
         size_x = math.ceil(in_size / out_size)
         stride = int(in_size / out_size)
-        self.pool = nn.MaxPool2d(kernel_size = size_x, stride = stride)
+        self.pool = nn.MaxPool2d(kernel_size=size_x, stride=stride)
 
     def forward(self, x):
         return self.pool(x)
@@ -36,7 +36,7 @@ class SPP(nn.Module):
 class SPP_multi_level(nn.Module):
     """  """
 
-    def __init__(self, in_size, out_size_list, flatten = False):
+    def __init__(self, in_size, out_size_list, flatten=False):
         """ Constructor for SPP_multi_level """
         super().__init__()
         self.spp_list = [SPP(in_size, out_size) for out_size in out_size_list]

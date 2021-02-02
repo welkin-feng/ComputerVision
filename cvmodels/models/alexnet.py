@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  alexnet.py
 
@@ -19,7 +19,7 @@ __all__ = ['alexnet', 'alexnet_cifar10']
 class AlexNet(nn.Module):
     """ input size should be 227x227x3  """
 
-    def __init__(self, num_classes, in_size = 227):
+    def __init__(self, num_classes, in_size=227):
         """ Constructor for AlexNet """
         super().__init__()
         self._init_model(num_classes, in_size)
@@ -32,31 +32,31 @@ class AlexNet(nn.Module):
 
         self.conv = nn.Sequential(
             # (227-11)/4+1=55
-            nn.Conv2d(3, 96, kernel_size = 11, stride = 4),
-            nn.ReLU(inplace = True),
-            nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 3, stride = 2),
+            nn.Conv2d(3, 96, kernel_size=11, stride=4),
+            nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, k=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             # (55-3)/2+1=27
-            nn.Conv2d(96, 256, kernel_size = 5, stride = 1, padding = 2),
-            nn.ReLU(inplace = True),
-            nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 3, stride = 2),
+            nn.Conv2d(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, k=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             # (27-3)/2+1=13
-            nn.Conv2d(256, 384, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(384, 384, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(384, 256, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size = 3, stride = 2),
+            nn.Conv2d(256, 384, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
             # (13-3)/2+1=6
         )
         self.fc = nn.Sequential(
             nn.Linear(256 * final_size ** 2, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
@@ -87,7 +87,7 @@ class AlexNet(nn.Module):
 class AlexNet_cifar10(AlexNet):
     """ AlexNet for cifar10  """
 
-    def __init__(self, num_classes = 10, in_size = 32):
+    def __init__(self, num_classes=10, in_size=32):
         """ Constructor for AlexNet """
         super().__init__(num_classes, in_size)
 
@@ -95,38 +95,38 @@ class AlexNet_cifar10(AlexNet):
         final_size = (in_size + 23) // 24
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 96, kernel_size = 11, stride = 3, padding = 5),
-            nn.ReLU(inplace = True),
-            nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
-            nn.Conv2d(96, 256, kernel_size = 5, stride = 1, padding = 2),
-            nn.ReLU(inplace = True),
-            nn.LocalResponseNorm(size = 5, k = 2),
-            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
-            nn.Conv2d(256, 384, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(384, 384, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(384, 256, kernel_size = 3, stride = 1, padding = 1),
-            nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1),
+            nn.Conv2d(3, 96, kernel_size=11, stride=3, padding=5),
+            nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, k=2),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(96, 256, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(inplace=True),
+            nn.LocalResponseNorm(size=5, k=2),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(256, 384, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 384, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
         self.fc = nn.Sequential(
             nn.Linear(256 * final_size ** 2, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
 
 
-def alexnet(num_classes, input_size = 227, **kwargs):
+def alexnet(num_classes, input_size=227, **kwargs):
     return AlexNet(num_classes, input_size)
 
 
-def alexnet_cifar10(num_classes, input_size = 32, **kwargs):
+def alexnet_cifar10(num_classes, input_size=32, **kwargs):
     return AlexNet_cifar10(num_classes, input_size)
 
 

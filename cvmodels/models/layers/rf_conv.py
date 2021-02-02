@@ -1,15 +1,12 @@
-##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-## Created by: Hang Zhang
-## Email: zhanghang0704@gmail.com
-## Copyright (c) 2020
-##
-## LICENSE file in the root directory of this source tree
-##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Created by: Hang Zhang
+# Email: zhanghang0704@gmail.com
+# Copyright (c) 2020
+#
+# LICENSE file in the root directory of this source tree
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 """Rectify Module"""
-import warnings
-
-import torch
 from torch.nn import Conv2d
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair
@@ -21,6 +18,7 @@ __all__ = ['RFConv2d']
 class RFConv2d(Conv2d):
     """Rectified Convolution
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1,
                  bias=True, padding_mode='zeros',
@@ -33,9 +31,9 @@ class RFConv2d(Conv2d):
         self.average = average_mode
 
         super(RFConv2d, self).__init__(
-                 in_channels, out_channels, kernel_size, stride=stride,
-                 padding=padding, dilation=dilation, groups=groups,
-                 bias=bias, padding_mode=padding_mode)
+            in_channels, out_channels, kernel_size, stride=stride,
+            padding=padding, dilation=dilation, groups=groups,
+            bias=bias, padding_mode=padding_mode)
 
     def _conv_forward(self, input, weight):
         if self.padding_mode != 'zeros':

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  resnet.py
 
@@ -23,14 +23,14 @@ class BasicBlock(nn.Module):
     """  """
     expansion = 1
 
-    def __init__(self, in_channels, out_channels_reduced, stride = 1, dilation = 1):
+    def __init__(self, in_channels, out_channels_reduced, stride=1, dilation=1):
         """ Constructor for ResNet_Block """
         super().__init__()
         out_channels = out_channels_reduced * self.expansion
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels_reduced, 3, stride, dilation, dilation),
             nn.BatchNorm2d(out_channels_reduced),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels_reduced, out_channels, 3, 1, dilation, dilation),
             nn.BatchNorm2d(out_channels),
         )
@@ -44,24 +44,24 @@ class BasicBlock(nn.Module):
         if self.downsample:
             x = self.downsample(x)
         out += x
-        return F.relu(out, inplace = True)
+        return F.relu(out, inplace=True)
 
 
 class Bottleneck(nn.Module):
     """  """
     expansion = 4
 
-    def __init__(self, in_channels, out_channels_reduced, stride = 1, dilation = 1):
+    def __init__(self, in_channels, out_channels_reduced, stride=1, dilation=1):
         """ Constructor for ResNet_Block """
         super().__init__()
         out_channels = out_channels_reduced * self.expansion
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels_reduced, 1, stride),
             nn.BatchNorm2d(out_channels_reduced),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels_reduced, out_channels_reduced, 3, 1, dilation, dilation),
             nn.BatchNorm2d(out_channels_reduced),
-            nn.ReLU(inplace = True),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels_reduced, out_channels, 1),
             nn.BatchNorm2d(out_channels),
         )
@@ -75,13 +75,13 @@ class Bottleneck(nn.Module):
         if self.downsample:
             x = self.downsample(x)
         out += x
-        return F.relu(out, inplace = True)
+        return F.relu(out, inplace=True)
 
 
 class ResNet(nn.Module):
     """  """
 
-    def __init__(self, block, layers, num_classes, in_size = 224):
+    def __init__(self, block, layers, num_classes, in_size=224):
         """ Constructor for ResNet """
         super().__init__()
         self._init_model(block, layers, num_classes, in_size)
@@ -90,17 +90,17 @@ class ResNet(nn.Module):
     def _init_model(self, block, layers, num_classes, in_size):
         out_size = in_size // 32
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3),
+            nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace = True)
+            nn.ReLU(inplace=True)
         )
         self.in_channels = 64
-        self.maxpool = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.conv2 = self._make_layer(block, 64, layers[0])
-        self.conv3 = self._make_layer(block, 128, layers[1], stride = 2)
-        self.conv4 = self._make_layer(block, 256, layers[2], stride = 2)
-        self.conv5 = self._make_layer(block, 512, layers[3], stride = 2)
-        self.avgpool = nn.AvgPool2d(kernel_size = out_size)
+        self.conv3 = self._make_layer(block, 128, layers[1], stride=2)
+        self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
+        self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AvgPool2d(kernel_size=out_size)
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(self.in_channels, num_classes)
 
@@ -119,7 +119,7 @@ class ResNet(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def _make_layer(self, block, out_channels_reduced, block_num, stride = 1):
+    def _make_layer(self, block, out_channels_reduced, block_num, stride=1):
         layer = []
         layer += [block(self.in_channels, out_channels_reduced, stride)]
         self.in_channels = out_channels_reduced * block.expansion
@@ -142,22 +142,22 @@ class ResNet(nn.Module):
 class ResNet_Cifar(ResNet):
     """  """
 
-    def __init__(self, block, layers, num_classes, in_size = 32):
+    def __init__(self, block, layers, num_classes, in_size=32):
         """ Constructor for ResNet_Cifar """
         super().__init__(block, layers, num_classes, in_size)
 
     def _init_model(self, block, layers, num_classes, in_size):
         out_size = in_size // 4
         self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size = 3, padding = 1),
+            nn.Conv2d(3, 16, kernel_size=3, padding=1),
             nn.BatchNorm2d(16),
-            nn.ReLU(inplace = True)
+            nn.ReLU(inplace=True)
         )
         self.in_channels = 16
         self.conv2 = self._make_layer(block, 16, layers[0])
-        self.conv3 = self._make_layer(block, 32, layers[1], stride = 2)
-        self.conv4 = self._make_layer(block, 64, layers[2], stride = 2)
-        self.avgpool = nn.AvgPool2d(kernel_size = out_size)
+        self.conv3 = self._make_layer(block, 32, layers[1], stride=2)
+        self.conv4 = self._make_layer(block, 64, layers[2], stride=2)
+        self.avgpool = nn.AvgPool2d(kernel_size=out_size)
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(self.in_channels, num_classes)
 

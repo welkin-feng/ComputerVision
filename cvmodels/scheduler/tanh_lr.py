@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  tanh_lr.py
 
@@ -27,12 +27,12 @@ class TanhLR(_LRScheduler):
                  t_mul: float = 1.,
                  lr_min: float = 0.,
                  decay_rate: float = 1.,
-                 warmup_t = 0,
-                 warmup_lr_init = 0,
-                 warmup_prefix = False,
-                 cycle_limit = 0,
-                 t_in_epochs = True,
-                 last_epoch = -1) -> None:
+                 warmup_t=0,
+                 warmup_lr_init=0,
+                 warmup_prefix=False,
+                 cycle_limit=0,
+                 t_in_epochs=True,
+                 last_epoch=-1) -> None:
 
         assert t_initial > 0
         assert lr_min >= 0
@@ -62,13 +62,14 @@ class TanhLR(_LRScheduler):
         else:
             self.warmup_steps = [1 for _ in self.base_lrs]
 
-    def get_lr(self, t = None):
+    def get_lr(self, t=None):
         t = t or self.last_epoch
         if 0 <= t < self.warmup_t:
             if hasattr(self, 'warmup_steps'):
                 lrs = [self.warmup_lr_init + t * s for s in self.warmup_steps]
             else:
-                lrs = [self.warmup_lr_init + (l_max - self.warmup_lr_init) * t / self.warmup_t for l_max in self.base_lrs]
+                lrs = [self.warmup_lr_init + (l_max - self.warmup_lr_init) *
+                       t / self.warmup_t for l_max in self.base_lrs]
         else:
             if self.warmup_prefix:
                 t = t - self.warmup_t

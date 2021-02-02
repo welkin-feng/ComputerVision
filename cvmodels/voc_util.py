@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  voc_util.py
 
@@ -26,7 +26,7 @@ from PIL import Image
 
 
 class RandomScale(object):
-    def __init__(self, scale = (0.8, 1.2)):
+    def __init__(self, scale=(0.8, 1.2)):
         if isinstance(scale, (int, float)):
             scale = (scale, scale)
         assert (isinstance(scale, (list, tuple)) and len(scale) == 2)
@@ -57,7 +57,7 @@ class VOCTransformCompose(object):
 
 
 class VOCTransformFlip(object):
-    def __init__(self, horizontal_flip_prob = 0.5, vertical_flip_prob = 0.5):
+    def __init__(self, horizontal_flip_prob=0.5, vertical_flip_prob=0.5):
         self.horizontal_flip_prob = horizontal_flip_prob
         self.vertical_flip_prob = vertical_flip_prob
 
@@ -73,11 +73,12 @@ class VOCTransformFlip(object):
 
 
 class VOCTransformResize(object):
-    def __init__(self, size, scale_with_padding = False):
+    def __init__(self, size, scale_with_padding=False):
         """
         Args:
-            size (sequence or int): Desired output size. If size is a sequence like (h, w), output size will be matched
-                to this. If size is an int, smaller edge of the image will be matched to this number.
+            size (sequence or int): Desired output size. If size is a sequence like (h, w),
+                output size will be matched to this. If size is an int, smaller edge of the
+                image will be matched to this number.
                 i.e, if height > width, then image will be rescaled to (size * height / width, size)
             scale_with_padding
         """
@@ -108,7 +109,7 @@ class VOCTransformResize(object):
 
 
 class VOCTransformRandomScale(object):
-    def __init__(self, scale = (0.8, 1.2), ratio_jitter = 0.3):
+    def __init__(self, scale=(0.8, 1.2), ratio_jitter=0.3):
         if isinstance(scale, (int, float)):
             scale = (scale, scale)
         assert (isinstance(scale, (list, tuple)) and len(scale) == 2)
@@ -129,7 +130,7 @@ class VOCTransformRandomScale(object):
 
 
 class VOCTransformExpand(object):
-    def __init__(self, ratio, prob = 0.5):
+    def __init__(self, ratio, prob=0.5):
         self.ratio = ratio
         self.p = prob
 
@@ -172,31 +173,34 @@ class VOCTransformExpand(object):
 
 
 class VOCTransformRandomExpand(VOCTransformExpand):
-    def __init__(self, ratio = (0.8, 1.2)):
+    def __init__(self, ratio=(0.8, 1.2)):
         assert isinstance(ratio, (float, int)) or (isinstance(ratio, (list, tuple)) and len(ratio) == 2)
         if isinstance(ratio, (list, tuple)):
             if ratio[0] > ratio[1]:
                 warnings.warn("range should be of kind (min, max)")
             ratio = random.uniform(*ratio)
-        super().__init__(ratio, prob = 1)
+        super().__init__(ratio, prob=1)
 
 
 class VOCTransformRandomCrop(object):
-    def __init__(self, size, padding = None, pad_if_needed = True, fill = 0, padding_mode = 'constant'):
+    def __init__(self, size, padding=None, pad_if_needed=True, fill=0, padding_mode='constant'):
         """Crop the given PIL Image at a random location.
 
         Args:
-            size (sequence or int): Desired output size of the crop. If size is an int instead of sequence like
-                (h, w), a square crop (size, size) is made.
-            padding (int or sequence, optional): Optional padding on each border of the image. Default is None,
-                i.e no padding. If a sequence of length 4 is provided, it is used to pad left, top, right, bottom
-                borders respectively. If a sequence of length 2 is provided, it is used to pad left/right, top/bottom
-                borders, respectively.
-            pad_if_needed (boolean): It will pad the image if smaller than the desired size to avoid raising an
-                exception. Since cropping is done after padding, the padding seems to be done at a random offset.
-            fill: Pixel fill value for constant fill. Default is 0. If a tuple of length 3, it is used to fill R, G, B
-                channels respectively. This value is only used when the padding_mode is constant
-            padding_mode: Type of padding. Should be: constant, edge, reflect or symmetric. Default is constant.
+            size (sequence or int): Desired output size of the crop. If size is an int
+                instead of sequence like (h, w), a square crop (size, size) is made.
+            padding (int or sequence, optional): Optional padding on each border of the image.
+                Default is None, i.e no padding. If a sequence of length 4 is provided, it is
+                used to pad left, top, right, bottom borders respectively. If a sequence of
+                length 2 is provided, it is used to pad left/right, top/bottom borders, respectively.
+            pad_if_needed (boolean): It will pad the image if smaller than the desired size to avoid
+                raising an exception. Since cropping is done after padding, the padding seems to be
+                done at a random offset.
+            fill: Pixel fill value for constant fill. Default is 0. If a tuple of length 3,
+                it is used to fill R, G, B channels respectively. This value is only used
+                when the padding_mode is constant
+            padding_mode: Type of padding. Should be: constant, edge, reflect or symmetric.
+                Default is constant.
 
                  - constant: pads with a constant value, this value is specified with fill
                  - edge: pads with the last value on the edge of the image
@@ -261,8 +265,8 @@ class VOCTransformRandomCrop(object):
             target['boxes'][:, (1, 3)] = target['boxes'][:, (1, 3)] + (self.size[0] - img.size[1])
             img = F.pad(img, (0, self.size[0] - img.size[1]), self.fill, self.padding_mode)
 
-        center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
-        center_y = target['boxes'][:, (1, 3)].mean(dim = -1)
+        center_x = target['boxes'][:, (0, 2)].mean(dim=-1)
+        center_y = target['boxes'][:, (1, 3)].mean(dim=-1)
 
         for it in range(20):
             if it < 10:
@@ -277,10 +281,10 @@ class VOCTransformRandomCrop(object):
             remain_obj_idx = (center_x > j) * (center_x < j + w) * (center_y > i) * (center_y < i + h)
             if remain_obj_idx.sum() > 0:
                 img = F.crop(img, i, j, h, w)
-                target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] - j).clamp(min = 0, max = w)
-                target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] - i).clamp(min = 0, max = h)
-                center_x = target['boxes'][:, (0, 2)].mean(dim = -1)
-                center_y = target['boxes'][:, (1, 3)].mean(dim = -1)
+                target['boxes'][:, (0, 2)] = (target['boxes'][:, (0, 2)] - j).clamp(min=0, max=w)
+                target['boxes'][:, (1, 3)] = (target['boxes'][:, (1, 3)] - i).clamp(min=0, max=h)
+                center_x = target['boxes'][:, (0, 2)].mean(dim=-1)
+                center_y = target['boxes'][:, (1, 3)].mean(dim=-1)
                 obj_idx = (center_x > 0) * (center_x < w) * (center_y > 0) * (center_y < h)
                 target['difficult'][~remain_obj_idx] = 1
                 target['boxes'] = target['boxes'][obj_idx]
@@ -320,9 +324,9 @@ class VOCTargetTransform(object):
                            int(t['bndbox']['xmax']), int(t['bndbox']['ymax']), ])
             labels.append(self.cls_to_idx[t['name']])
             diff.append(int(t['difficult']))
-        target = dict(boxes = torch.tensor(coords).float(),
-                      labels = torch.tensor(labels).long(),
-                      difficult = torch.tensor(diff).long())
+        target = dict(boxes=torch.tensor(coords).float(),
+                      labels=torch.tensor(labels).long(),
+                      difficult=torch.tensor(diff).long())
         return target
 
 
@@ -343,18 +347,21 @@ class VOCClassification(torchvision.datasets.VisionDataset):
                   'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
 
     def __init__(self, root,
-                 year = '2007',
-                 image_set = 'train',
-                 download = False,
-                 transform = None,
-                 target_transform = None):
-        super(VOCClassification, self).__init__(root, transform = transform, target_transform = target_transform)
-        DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012', 'filename': 'VOCtrainval_11-May-2012.tar'},
-                             '2007': {'base_dir': 'VOCdevkit/VOC2007', 'filename': 'VOCtrainval_06-Nov-2007.tar'}}
+                 year='2007',
+                 image_set='train',
+                 download=False,
+                 transform=None,
+                 target_transform=None):
+        super(VOCClassification, self).__init__(root, transform=transform, target_transform=target_transform)
+        DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012',
+                                      'filename': 'VOCtrainval_11-May-2012.tar'},
+                             '2007': {'base_dir': 'VOCdevkit/VOC2007',
+                                      'filename': 'VOCtrainval_06-Nov-2007.tar'}}
         self.year = year
         valid_values = ("train", "trainval", "val", "test")
         if image_set not in valid_values:
-            raise ValueError(f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
+            raise ValueError(
+                f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
         self.image_set = image_set
         base_dir = DATASET_YEAR_DICT[year]['base_dir']
         voc_root = os.path.join(self.root, base_dir)
@@ -393,15 +400,17 @@ class VOCClassification(torchvision.datasets.VisionDataset):
 class VOCDetection(torchvision.datasets.VOCDetection):
     def __init__(self,
                  root,
-                 year = '2007',
-                 image_set = 'train',
-                 download = False,
-                 transform = None,
-                 target_transform = None,
-                 transforms = None):
+                 year='2007',
+                 image_set='train',
+                 download=False,
+                 transform=None,
+                 target_transform=None,
+                 transforms=None):
         super(torchvision.datasets.VOCDetection, self).__init__(root, transforms, transform, target_transform)
-        DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012', 'filename': 'VOCtrainval_11-May-2012.tar'},
-                             '2007': {'base_dir': 'VOCdevkit/VOC2007', 'filename': 'VOCtrainval_06-Nov-2007.tar'}}
+        DATASET_YEAR_DICT = {'2012': {'base_dir': 'VOCdevkit/VOC2012',
+                                      'filename': 'VOCtrainval_11-May-2012.tar'},
+                             '2007': {'base_dir': 'VOCdevkit/VOC2007',
+                                      'filename': 'VOCtrainval_06-Nov-2007.tar'}}
         self.year = year
         # self.url = DATASET_YEAR_DICT[year]['url']
         # self.filename = DATASET_YEAR_DICT[year]['filename']
@@ -409,7 +418,8 @@ class VOCDetection(torchvision.datasets.VOCDetection):
         # self.image_set = verify_str_arg(image_set, "image_set", ("train", "trainval", "val", "test"))
         valid_values = ("train", "trainval", "val", "test")
         if image_set not in valid_values:
-            raise ValueError(f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
+            raise ValueError(
+                f"Unknown value '{image_set}' for argument 'image_set'. Valid values are {valid_values}.")
         self.image_set = image_set
 
         base_dir = DATASET_YEAR_DICT[year]['base_dir']
@@ -439,9 +449,9 @@ def voc_collate(batch):
     elem_type = type(elem)
     if isinstance(elem, torch.Tensor):
         out = None
-        return torch.stack(batch, 0, out = out)
+        return torch.stack(batch, 0, out=out)
     elif isinstance(elem, float):
-        return torch.tensor(batch, dtype = torch.float)
+        return torch.tensor(batch, dtype=torch.float)
     elif isinstance(elem, dict):
         return VOCTarget(batch)
     elif isinstance(elem, (tuple, list)):  # namedtuple
@@ -453,7 +463,7 @@ def voc_collate(batch):
     raise TypeError(default_collate_err_msg_format.format(elem_type))
 
 
-def get_data_loader(transforms, config, train_mode = True):
+def get_data_loader(transforms, config, train_mode=True):
     assert config.dataset in ['voc2007', 'voc2012']
     if config.dataset == "voc2007":
         year = '2007'
@@ -473,18 +483,18 @@ def get_data_loader(transforms, config, train_mode = True):
             root = os.path.join(config.data_path, 'voctest_11-may-2012')
             image_set = 'test'
 
-    dataset = VOCDetection(root = root, year = year, image_set = image_set, transforms = transforms)
-    data_loader = DataLoader(dataset, batch_size = config.batch_size, shuffle = train_mode,
-                             num_workers = config.workers, collate_fn = voc_collate)
+    dataset = VOCDetection(root=root, year=year, image_set=image_set, transforms=transforms)
+    data_loader = DataLoader(dataset, batch_size=config.batch_size, shuffle=train_mode,
+                             num_workers=config.workers, collate_fn=voc_collate)
 
     return data_loader
 
 
-def data_augmentation(config, size, train_mode = True):
+def data_augmentation(config, size, train_mode=True):
     img_trans, trans = [], [vision.StandardTransform(None, VOCTargetTransform())]
 
     if train_mode and config.augmentation.color_jitter:
-        img_trans.append(transforms.ColorJitter(brightness = 1.5, saturation = 1.5, hue = 0.1))
+        img_trans.append(transforms.ColorJitter(brightness=1.5, saturation=1.5, hue=0.1))
     img_trans.append(transforms.ToTensor())
     if config.augmentation.normalize:
         img_trans.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
@@ -495,9 +505,9 @@ def data_augmentation(config, size, train_mode = True):
             trans.append(VOCTransformFlip(0.5, 0.5))
         if config.augmentation.resize:
             if config.augmentation.random_crop:
-                trans.append(VOCTransformResize(size = size))
+                trans.append(VOCTransformResize(size=size))
             else:
-                trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))
+                trans.append(VOCTransformResize(size=(size, size), scale_with_padding=True))
         if config.augmentation.random_crop:
             if config.augmentation.random_scale:
                 if isinstance(config.augmentation.random_scale, (list, tuple)):
@@ -511,15 +521,15 @@ def data_augmentation(config, size, train_mode = True):
                 else:
                     ratio = (0.8, 1.2)
                 trans.append(VOCTransformRandomExpand(ratio))
-            trans.append(VOCTransformRandomCrop(size = size))
+            trans.append(VOCTransformRandomCrop(size=size))
     else:
-        trans.append(VOCTransformResize(size = (size, size), scale_with_padding = True))
+        trans.append(VOCTransformResize(size=(size, size), scale_with_padding=True))
 
     trans.append(vision.StandardTransform(img_trans, None))
     return VOCTransformCompose(trans)
 
 
-def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0.5):
+def calculate_tp_troch(pred_boxes, pred_scores, gt_boxes, gt_difficult=None, iou_thresh=0.5):
     """
         calculate tp/fp for all predicted bboxes for one class of one image.
         对于匹配到同一gt的不同bboxes，让score最高tp = 1，其它的tp = 0
@@ -542,20 +552,23 @@ def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0
     if pred_boxes.numel() == 0:
         return len(gt_boxes), [], []
 
+    if gt_difficult is None:
+        gt_difficult = torch.zeros((len(gt_boxes), 1)).to(gt_boxes)
+
     # 否则计算所有预测框与gt之间的iou
     ious = pred_boxes.new_zeros((len(gt_boxes), len(pred_boxes)))
     for i in range(len(gt_boxes)):
         gb = gt_boxes[i]
         area_pb = (pred_boxes[:, 2] - pred_boxes[:, 0]) * (pred_boxes[:, 3] - pred_boxes[:, 1])
         area_gb = (gb[2] - gb[0]) * (gb[3] - gb[1])
-        xx1 = pred_boxes[:, 0].clamp(min = gb[0].item())  # [N-1,]
-        yy1 = pred_boxes[:, 1].clamp(min = gb[1].item())
-        xx2 = pred_boxes[:, 2].clamp(max = gb[2].item())
-        yy2 = pred_boxes[:, 3].clamp(max = gb[3].item())
-        inter = (xx2 - xx1).clamp(min = 0) * (yy2 - yy1).clamp(min = 0)  # [N-1,]
+        xx1 = pred_boxes[:, 0].clamp(min=gb[0].item())  # [N-1,]
+        yy1 = pred_boxes[:, 1].clamp(min=gb[1].item())
+        xx2 = pred_boxes[:, 2].clamp(max=gb[2].item())
+        yy2 = pred_boxes[:, 3].clamp(max=gb[3].item())
+        inter = (xx2 - xx1).clamp(min=0) * (yy2 - yy1).clamp(min=0)  # [N-1,]
         ious[i] = inter / (area_pb + area_gb - inter)
     # 每个预测框的最大iou所对应的gt记为其匹配的gt
-    max_ious, max_ious_idx = ious.max(dim = 0)
+    max_ious, max_ious_idx = ious.max(dim=0)
 
     not_difficult_gt_mask = gt_difficult == 0
     gt_num = not_difficult_gt_mask.sum().item()
@@ -564,7 +577,7 @@ def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0
 
     # 保留 max_iou 中属于 非difficult 目标的预测框，即应该去掉与 difficult gt 相匹配的预测框，不参与p-r计算
     # 如果去掉与 difficult gt 对应的iou分数后，候选框的最大iou依然没有发生改变，则可认为此候选框不与difficult gt相匹配，应该保留
-    not_difficult_pb_mask = (ious[not_difficult_gt_mask].max(dim = 0)[0] == max_ious)
+    not_difficult_pb_mask = (ious[not_difficult_gt_mask].max(dim=0)[0] == max_ious)
     max_ious, max_ious_idx = max_ious[not_difficult_pb_mask], max_ious_idx[not_difficult_pb_mask]
     if max_ious_idx.numel() == 0:
         return gt_num, [], []
@@ -579,9 +592,95 @@ def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult, iou_thresh = 0
     return gt_num, tp_list.tolist(), confidence_score.tolist()
 
 
+def calculate_tp(pred_boxes, pred_scores, gt_boxes, gt_difficult=None, iou_thresh=(0.5, )):
+    """
+        calculate tp/fp for all predicted bboxes for one class of one image.
+        对于匹配到同一gt的不同bboxes，让score最高tp = 1，其它的tp = 0
+    Args:
+        pred_boxes: numpy.ndarray, shape [N, 4], 某张图片中某类别的全部预测框的坐标 (x0, y0, x1, y1)
+        pred_scores: numpy.ndarray, shape [N,], 某张图片中某类别的全部预测框的score
+        gt_boxes: numpy.ndarray, shape [M, 4], 某张图片中某类别的全部gt的坐标 (x0, y0, x1, y1)
+        gt_difficult: numpy.ndarray, shape [M,], 某张图片中某类别的gt中是否为difficult目标的值
+        iou_thresh: tuple/list, iou 阈值列表
+
+    Returns:
+        gt_num: int, 某张图片中某类别的gt数量
+        tps: dict of list, key 为每个iou_thresh 记录某张图片中某类别的预测框是否为tp的情况
+        confidence_scores: dict of list, 记录某张图片中某类别的预测框的score值 (与tp_list相对应)
+    """
+    tps, confidence_scores = {k: [] for k in iou_thresh}, {k: [] for k in iou_thresh}
+
+    if len(gt_boxes) == 0:
+        for k in iou_thresh:
+            tps[k] = np.zeros(len(pred_scores)).tolist()
+            confidence_scores[k] = pred_scores.tolist()
+        return 0, tps, confidence_scores
+
+    # 若无对应的boxes，则 tp 为空
+    if len(pred_boxes) == 0:
+        return len(gt_boxes), tps, confidence_scores
+
+    if gt_difficult is None:
+        gt_difficult = np.zeros(len(gt_boxes))
+
+    # 否则计算所有预测框与gt之间的iou
+    ious = np.zeros((len(gt_boxes), len(pred_boxes)))
+    area_pbs = (pred_boxes[:, 2] - pred_boxes[:, 0]) * (pred_boxes[:, 3] - pred_boxes[:, 1])
+    for i in range(len(gt_boxes)):
+        gb = gt_boxes[i]
+        area_gb = (gb[2] - gb[0]) * (gb[3] - gb[1])
+
+        xx1 = pred_boxes[:, 0].clip(min=gb[0])  # [N-1,]
+        yy1 = pred_boxes[:, 1].clip(min=gb[1])
+        xx2 = pred_boxes[:, 2].clip(max=gb[2])
+        yy2 = pred_boxes[:, 3].clip(max=gb[3])
+        inter_area = (xx2 - xx1).clip(min=0) * (yy2 - yy1).clip(min=0)  # [N-1,]
+        ious[i] = inter_area / (area_pbs + area_gb - inter_area)
+    # 每个预测框的最大iou所对应的gt记为其匹配的gt
+    _max_ious, _max_ious_idx = np.max(ious, axis=0), np.argmax(ious, axis=0)
+
+    not_difficult_gt_mask = (gt_difficult == 0)
+    gt_num = not_difficult_gt_mask.sum()
+    if gt_num == 0:
+        for k in iou_thresh:
+            _pred_scores = pred_scores[_max_ious <= iou_thresh]
+            tps[k] = np.zeros(len(_pred_scores)).tolist()
+            confidence_scores[k] = _pred_scores.tolist()
+        return 0, tps, confidence_scores
+
+    max_ious = np.max(ious[not_difficult_gt_mask], axis=0)
+    max_ious_idx = np.argmax(ious[not_difficult_gt_mask], axis=0)
+
+    for iou_thr in iou_thresh:
+        # 保留 max_iou 中属于 非difficult 目标的预测框，即应该去掉与 difficult gt 相匹配的预测框，不参与p-r计算
+        # 如果去掉与 difficult gt 对应的iou分数后，候选框的最大iou依然没有发生改变，则可认为此候选框不与difficult gt相匹配，应该保留
+        not_difficult_pb_mask = ~((max_ious != _max_ious) * (max_ious > iou_thr))
+
+        cur_max_ious, cur_max_ious_idx = max_ious[not_difficult_pb_mask], max_ious_idx[not_difficult_pb_mask]
+
+        if len(cur_max_ious) == 0:
+            continue
+
+        score = pred_scores[not_difficult_pb_mask]
+        tp_list = np.zeros(score.shape)
+        sort_idx = np.argsort(-score)
+        gt_matched = np.zeros(len(not_difficult_gt_mask), dtype=np.bool)
+        for i in sort_idx:
+            max_iou, max_iou_idx = np.max(ious[~gt_matched, i]), np.argmax(ious[~gt_matched, i])
+            if max_iou > iou_thr:
+                tp_list[i] = 1
+                gt_matched[max_iou_idx] = True
+                if gt_matched.all():
+                    break
+        tps[iou_thr] = tp_list.tolist()
+        confidence_scores[iou_thr] = score.tolist()
+    return gt_num, tps, confidence_scores
+
+
 def calculate_pr(gt_num, tp_list, confidence_score):
     """
-    calculate all p-r pairs among different score_thresh for one class, using `tp_list` and `confidence_score`.
+    calculate all p-r pairs among different score_thresh for one class,
+    using `tp_list` and `confidence_score`.
 
     Args:
         gt_num (Integer): 某张图片中某类别的gt数量
@@ -613,7 +712,7 @@ def calculate_pr(gt_num, tp_list, confidence_score):
     return recall.tolist(), precision.tolist()
 
 
-def voc_ap(rec, prec, use_07_metric = False):
+def voc_ap(rec, prec, use_07_metric=False):
     """Compute VOC AP given precision and recall. If use_07_metric is true, uses
     the VOC 07 11-point method (default:False).
     """

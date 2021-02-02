@@ -27,7 +27,7 @@ __all__ = ['se_resnext50_modified_32x4d']  # model_registry will add each entryp
 #     }
 
 
-def get_padding(kernel_size, stride, dilation = 1):
+def get_padding(kernel_size, stride, dilation=1):
     padding = ((stride - 1) + dilation * (kernel_size - 1)) // 2
     return padding
 
@@ -35,9 +35,9 @@ def get_padding(kernel_size, stride, dilation = 1):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride = 1, downsample = None, cardinality = 1, base_width = 64,
-                 reduce_first = 1, dilation = 1, first_dilation = None, act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d,
-                 attn_layer = None, drop_block = None, drop_path = None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
+                 reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU,
+                 norm_layer=nn.BatchNorm2d, attn_layer=None, drop_block=None, drop_path=None):
         super(BasicBlock, self).__init__()
 
         assert cardinality == 1, 'BasicBlock only supports cardinality of 1'
@@ -47,17 +47,17 @@ class BasicBlock(nn.Module):
         first_dilation = first_dilation or dilation
 
         self.conv1 = nn.Conv2d(
-            inplanes, first_planes, kernel_size = 3, stride = stride, padding = first_dilation,
-            dilation = first_dilation, bias = False)
+            inplanes, first_planes, kernel_size=3, stride=stride, padding=first_dilation,
+            dilation=first_dilation, bias=False)
         self.bn1 = norm_layer(first_planes)
-        self.act1 = act_layer(inplace = True)
+        self.act1 = act_layer(inplace=True)
         self.conv2 = nn.Conv2d(
-            first_planes, outplanes, kernel_size = 3, padding = dilation, dilation = dilation, bias = False)
+            first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
         self.bn2 = norm_layer(outplanes)
 
         self.se = SEModule(outplanes) if attn_layer is not None else None
 
-        self.act2 = act_layer(inplace = True)
+        self.act2 = act_layer(inplace=True)
         self.downsample = downsample
         self.stride = stride
         self.dilation = dilation
@@ -99,10 +99,10 @@ class Bottleneck(nn.Module):
     __constants__ = ['se', 'downsample']  # for pre 1.4 torchscript compat
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride = 1, downsample = None, cardinality = 1, base_width = 64,
-                 reduce_first = 1, dilation = 1, first_dilation = None, act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d,
-                 attn_layer = None, drop_block = None, drop_path = None, pool_type = 'max', use_pooling = False,
-                 residual_fn = 'sum'):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
+                 reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU,
+                 norm_layer=nn.BatchNorm2d, attn_layer=None, drop_block=None, drop_path=None,
+                 pool_type='max', use_pooling=False, residual_fn='sum'):
         super(Bottleneck, self).__init__()
 
         width = int(math.floor(planes * (base_width / 64)) * cardinality)
@@ -110,27 +110,28 @@ class Bottleneck(nn.Module):
         outplanes = planes * self.expansion
         first_dilation = first_dilation or dilation
 
-        self.conv1 = nn.Conv2d(inplanes, first_planes, kernel_size = 1, bias = False)
+        self.conv1 = nn.Conv2d(inplanes, first_planes, kernel_size=1, bias=False)
         self.bn1 = norm_layer(first_planes)
-        self.act1 = act_layer(inplace = True)
+        self.act1 = act_layer(inplace=True)
 
-        self.pool = None
+        self.pool_layer = None
         if stride > 1 and use_pooling:
             if pool_type == 'max':
-                self.pool = nn.MaxPool2d(kernel_size = 3, stride = stride, padding = 1)
+                self.pool_layer = nn.MaxPool2d(kernel_size=3, stride=stride, padding=1)
                 stride = 1
             elif pool_type == 'avg':
-                self.pool = nn.AvgPool2d(kernel_size = 3, stride = stride, padding = 1)
+                self.pool_layer = nn.AvgPool2d(kernel_size=3, stride=stride, padding=1)
                 stride = 1
-        self.conv2 = nn.Conv2d(first_planes, width, kernel_size = 3, stride = stride,
-                               padding = first_dilation, dilation = first_dilation, groups = cardinality, bias = False)
+        self.conv2 = nn.Conv2d(first_planes, width, kernel_size=3, stride=stride,
+                               padding=first_dilation, dilation=first_dilation,
+                               groups=cardinality, bias=False)
         self.bn2 = norm_layer(width)
-        self.act2 = act_layer(inplace = True)
+        self.act2 = act_layer(inplace=True)
 
-        self.conv3 = nn.Conv2d(width, outplanes, kernel_size = 1, bias = False)
+        self.conv3 = nn.Conv2d(width, outplanes, kernel_size=1, bias=False)
         self.bn3 = norm_layer(outplanes)
         self.se = SEModule(outplanes) if attn_layer is not None else None
-        self.act3 = act_layer(inplace = True)
+        self.act3 = act_layer(inplace=True)
 
         self.residual_fn = residual_fn
         self.downsample = downsample
@@ -155,8 +156,8 @@ class Bottleneck(nn.Module):
 
         x = self.drop_block(x) if self.drop_block is not None else x
         x = self.act2(x)
-        if self.pool is not None:
-            x = self.pool(x)
+        if self.pool_layer is not None:
+            x = self.pool_layer(x)
 
         x = self.conv3(x)
         x = self.bn3(x)
@@ -178,30 +179,33 @@ class Bottleneck(nn.Module):
         return x
 
 
-def downsample_conv(in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
+def downsample_conv(in_channels, out_channels, kernel_size, stride=1,
+                    dilation=1, first_dilation=None, norm_layer=None):
     norm_layer = norm_layer or nn.BatchNorm2d
     kernel_size = 1 if stride == 1 and dilation == 1 else kernel_size
     first_dilation = (first_dilation or dilation) if kernel_size > 1 else 1
     p = get_padding(kernel_size, stride, first_dilation)
 
     return nn.Sequential(*[
-        nn.Conv2d(in_channels, out_channels, kernel_size, stride = stride, padding = p, dilation = first_dilation, bias = False),
+        nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride,
+                  padding=p, dilation=first_dilation, bias=False),
         norm_layer(out_channels)
     ])
 
 
-def downsample_avg(in_channels, out_channels, kernel_size, stride = 1, dilation = 1, first_dilation = None, norm_layer = None):
+def downsample_avg(in_channels, out_channels, kernel_size, stride=1,
+                   dilation=1, first_dilation=None, norm_layer=None):
     norm_layer = norm_layer or nn.BatchNorm2d
     avg_stride = stride if dilation == 1 else 1
     if stride == 1 and dilation == 1:
         pool = nn.Identity()
     else:
         avg_pool_fn = AvgPool2dSame if avg_stride == 1 and dilation > 1 else nn.AvgPool2d
-        pool = avg_pool_fn(avg_stride, avg_stride, ceil_mode = True, count_include_pad = False)
+        pool = avg_pool_fn(avg_stride, avg_stride, ceil_mode=True, count_include_pad=False)
 
     return nn.Sequential(*[
         pool,
-        nn.Conv2d(in_channels, out_channels, 1, stride = 1, padding = 0, bias = False),
+        nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0, bias=False),
         norm_layer(out_channels)
     ])
 
@@ -276,10 +280,11 @@ class ResNet(nn.Module):
         Global pooling type. One of 'avg', 'max', 'avgmax', 'catavgmax'
     """
 
-    def __init__(self, block, layers, num_classes = 1000, in_chans = 3, cardinality = 1, base_width = 64,
-                 stem_width = 64, stem_type = '', act_layer = nn.ReLU, norm_layer = nn.BatchNorm2d, output_stride = 32,
-                 block_reduce_first = 1, down_kernel_size = 1, avg_down = False, drop_rate = 0.0, drop_block = None,
-                 zero_init_last_bn = True, block_args = None):
+    def __init__(self, block, layers, num_classes=1000, in_chans=3, cardinality=1,
+                 base_width=64, stem_width=64, stem_type='', act_layer=nn.ReLU,
+                 norm_layer=nn.BatchNorm2d, output_stride=32, block_reduce_first=1,
+                 down_kernel_size=1, avg_down=False, drop_rate=0.0, drop_block=None,
+                 zero_init_last_bn=True, block_args=None):
         block_args = block_args or dict()
         self.num_classes = num_classes
         deep_stem = 'deep' in stem_type
@@ -298,18 +303,18 @@ class ResNet(nn.Module):
                 stem_chs_2 = stem_width if 'narrow' in stem_type else 6 * (stem_width // 4)
             # no downsample in stem
             self.conv1 = nn.Sequential(*[
-                nn.Conv2d(in_chans, stem_chs_1, 3, stride = 2, padding = 1, bias = False),
+                nn.Conv2d(in_chans, stem_chs_1, 3, stride=2, padding=1, bias=False),
                 norm_layer(stem_chs_1),
-                act_layer(inplace = True),
-                nn.Conv2d(stem_chs_1, stem_chs_2, 3, stride = 1, padding = 1, bias = False),
+                act_layer(inplace=True),
+                nn.Conv2d(stem_chs_1, stem_chs_2, 3, stride=1, padding=1, bias=False),
                 norm_layer(stem_chs_2),
-                act_layer(inplace = True),
-                nn.Conv2d(stem_chs_2, self.inplanes, 3, stride = 1, padding = 1, bias = False)])
+                act_layer(inplace=True),
+                nn.Conv2d(stem_chs_2, self.inplanes, 3, stride=1, padding=1, bias=False)])
         else:
-            self.conv1 = nn.Conv2d(in_chans, self.inplanes, kernel_size = 7, stride = 2, padding = 3, bias = False)
+            self.conv1 = nn.Conv2d(in_chans, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
-        self.act1 = act_layer(inplace = True)
-        self.maxpool = nn.MaxPool2d(kernel_size = 3, stride = 2, padding = 1)
+        self.act1 = act_layer(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # Feature Blocks
         channels, strides, dilations = [64, 128, 256, 512], [1, 2, 2, 2], [1] * 4
@@ -327,12 +332,12 @@ class ResNet(nn.Module):
 
         layer_args = list(zip(channels, layers, strides, dilations))
         layer_kwargs = dict(
-            reduce_first = block_reduce_first, act_layer = act_layer, norm_layer = norm_layer,
-            avg_down = avg_down, down_kernel_size = down_kernel_size, **block_args)
-        self.layer1 = self._make_layer(block, *layer_args[0], pool_type = pool_types[0], **layer_kwargs)
-        self.layer2 = self._make_layer(block, *layer_args[1], pool_type = pool_types[1], **layer_kwargs)
-        self.layer3 = self._make_layer(block, *layer_args[2], pool_type = pool_types[2], **layer_kwargs)
-        self.layer4 = self._make_layer(block, *layer_args[3], pool_type = pool_types[3], **layer_kwargs)
+            reduce_first=block_reduce_first, act_layer=act_layer, norm_layer=norm_layer,
+            avg_down=avg_down, down_kernel_size=down_kernel_size, **block_args)
+        self.layer1 = self._make_layer(block, *layer_args[0], pool_type=pool_types[0], **layer_kwargs)
+        self.layer2 = self._make_layer(block, *layer_args[1], pool_type=pool_types[1], **layer_kwargs)
+        self.layer3 = self._make_layer(block, *layer_args[2], pool_type=pool_types[2], **layer_kwargs)
+        self.layer4 = self._make_layer(block, *layer_args[3], pool_type=pool_types[3], **layer_kwargs)
 
         self.drop_block0, self.drop_block1 = None, None
         if drop_block is not None:
@@ -343,12 +348,12 @@ class ResNet(nn.Module):
         self.num_features = 512 * block.expansion
         # self.global_pool = SelectAdaptivePool2d(pool_type = global_pool)
         # self.fc = nn.Linear(self.num_features * self.global_pool.feat_mult(), num_classes)
-        self.global_pool = nn.AdaptiveAvgPool2d(output_size = 1)
+        self.global_pool = nn.AdaptiveAvgPool2d(output_size=1)
         self.fc = nn.Linear(self.num_features, num_classes)
 
         for n, m in self.named_modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode = 'fan_out', nonlinearity = 'relu')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1.)
                 nn.init.constant_(m.bias, 0.)
@@ -357,20 +362,25 @@ class ResNet(nn.Module):
                 if hasattr(m, 'zero_init_last_bn'):
                     m.zero_init_last_bn()
 
-    def _make_layer(self, block, planes, blocks, stride = 1, dilation = 1, reduce_first = 1,
-                    avg_down = False, down_kernel_size = 1, **kwargs):
+    def _make_layer(self, block, planes, blocks, stride=1, dilation=1, reduce_first=1,
+                    avg_down=False, down_kernel_size=1, **kwargs):
         downsample = None
         first_dilation = 1 if dilation in (1, 2) else 2
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample_args = dict(
-                in_channels = self.inplanes, out_channels = planes * block.expansion, kernel_size = down_kernel_size,
-                stride = stride, dilation = dilation, first_dilation = first_dilation, norm_layer = kwargs.get('norm_layer'))
+                in_channels=self.inplanes,
+                out_channels=planes * block.expansion,
+                kernel_size=down_kernel_size,
+                stride=stride, dilation=dilation,
+                first_dilation=first_dilation,
+                norm_layer=kwargs.get('norm_layer'))
             downsample = downsample_avg(**downsample_args) if avg_down else downsample_conv(**downsample_args)
 
         block_kwargs = dict(
-            cardinality = self.cardinality, base_width = self.base_width, reduce_first = reduce_first,
-            dilation = dilation, **kwargs)
-        layers = [block(self.inplanes, planes, stride, downsample, first_dilation = first_dilation, **block_kwargs)]
+            cardinality=self.cardinality, base_width=self.base_width, reduce_first=reduce_first,
+            dilation=dilation, **kwargs)
+        layers = [block(self.inplanes, planes, stride, downsample,
+                        first_dilation=first_dilation, **block_kwargs)]
         self.inplanes = planes * block.expansion
         layers += [block(self.inplanes, planes, **block_kwargs) for _ in range(1, blocks)]
 
@@ -394,24 +404,25 @@ class ResNet(nn.Module):
         x = self.forward_features(x)
         x = self.global_pool(x).flatten(1)
         if self.drop_rate:
-            x = F.dropout(x, p = float(self.drop_rate), training = self.training)
+            x = F.dropout(x, p=float(self.drop_rate), training=self.training)
         x = self.fc(x)
         return x
 
 
-def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url = '', skip = (), conversion = ()):
+def load_pretrained_model(model, conv1_name, in_chans=3, model_path='',
+                          url='', skip=(), conversion=()):
     import os, numpy
     if os.path.isfile(model_path):
-        state_dict = torch.load(model_path, map_location = 'cpu')
+        state_dict = torch.load(model_path, map_location='cpu')
     elif url != '':
         import torch.utils.model_zoo as model_zoo
-        state_dict = model_zoo.load_url(url, progress = False, map_location = 'cpu')
+        state_dict = model_zoo.load_url(url, progress=False, map_location='cpu')
     else:
         return
     if in_chans == 1:
         print('Converting first conv (%s) from 3 to 1 channel' % conv1_name)
         conv1_weight = state_dict[conv1_name + '.weight']
-        state_dict[conv1_name + '.weight'] = conv1_weight.sum(dim = 1, keepdim = True)
+        state_dict[conv1_name + '.weight'] = conv1_weight.sum(dim=1, keepdim=True)
     elif in_chans != 3:
         assert False, "Invalid in_chans for pretrained weights"
     print('=> loading pretrained model {}'.format(model_path))
@@ -426,26 +437,26 @@ def load_pretrained_model(model, conv1_name, in_chans = 3, model_path = '', url 
                     km = _km
                     break
             pretrained_state_dict[km] = state_dict[ks]
-    print(
-        f"=> loading pretrained model weight length {len(pretrained_state_dict)} / total_state_dict {len(state_dict)} / total_model_dict {len(model_dict)}")
+    print(f"=> loading pretrained model weight length {len(pretrained_state_dict)} / "
+          f"total_state_dict {len(state_dict)} / total_model_dict {len(model_dict)}")
     model_dict.update(pretrained_state_dict)
-    model.load_state_dict(model_dict, strict = False)
+    model.load_state_dict(model_dict, strict=False)
 
 
-def se_resnext50_modified_32x4d(pretrained = False, num_classes = 1000, in_chans = 3, **kwargs):
+def se_resnext50_modified_32x4d(pretrained=False, num_classes=1000, in_chans=3, **kwargs):
     act_layer = nn.ReLU
     stem_type = 'deep_tiered_narrow'
     avg_down = True
     drop_block = [DropBlock2D(0.2, 40),
                   DropBlock2D(0.2, 20)]
-    block_args = dict(attn_layer = 'se', use_pooling = True, residual_fn = 'max')
+    block_args = dict(attn_layer='se', use_pooling=True, residual_fn='max')
 
-    model = ResNet(Bottleneck, [3, 4, 6, 3], num_classes = num_classes, in_chans = in_chans,
-                   cardinality = 32, base_width = 4, act_layer = act_layer,
-                   stem_type = stem_type, avg_down = avg_down, drop_block = drop_block,
-                   block_args = block_args, **kwargs)
+    model = ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, in_chans=in_chans,
+                   cardinality=32, base_width=4, act_layer=act_layer,
+                   stem_type=stem_type, avg_down=avg_down, drop_block=drop_block,
+                   block_args=block_args, **kwargs)
     if pretrained:
         pretrained_url = 'https://github.com/rwightman/pytorch-pretrained-gluonresnet/releases/download/v0.1/gluon_resnext50_32x4d-e6a097c1.pth'
-        load_pretrained_model(model, 'conv1', in_chans, url = pretrained_url, skip = ('conv1.',))
+        load_pretrained_model(model, 'conv1', in_chans, url=pretrained_url, skip=('conv1.',))
 
     return model

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  hrnet_module.py
 
@@ -18,21 +18,21 @@ BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
 
 
-def conv3x3(in_planes, out_planes, stride = 1):
+def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride = 1, downsample = None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes, momentum = BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace = True)
+        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+        self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes, momentum = BN_MOMENTUM)
+        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
         self.downsample = downsample
         self.stride = stride
 
@@ -58,15 +58,15 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride = 1, downsample = None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size = 1, bias = False)
-        self.bn1 = nn.BatchNorm2d(planes, momentum = BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
-        self.bn2 = nn.BatchNorm2d(planes, momentum = BN_MOMENTUM)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size = 1, bias = False)
-        self.bn3 = nn.BatchNorm2d(planes * self.expansion, momentum = BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace = True)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
+        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(planes * self.expansion, momentum=BN_MOMENTUM)
+        self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
 
@@ -95,7 +95,7 @@ class Bottleneck(nn.Module):
 
 class HighResolutionModule(nn.Module):
     def __init__(self, num_branches, blocks, num_blocks, num_inchannels,
-                 num_channels, fuse_method, multi_scale_output = True):
+                 num_channels, fuse_method, multi_scale_output=True):
         super(HighResolutionModule, self).__init__()
         self._check_branches(num_branches, blocks, num_blocks, num_inchannels, num_channels)
 
@@ -125,17 +125,18 @@ class HighResolutionModule(nn.Module):
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-    def _make_one_branch(self, branch_index, block, num_blocks, num_channels, stride = 1):
+    def _make_one_branch(self, branch_index, block, num_blocks, num_channels, stride=1):
         downsample = None
         if stride != 1 or self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(self.num_inchannels[branch_index], num_channels[branch_index] * block.expansion,
-                          kernel_size = 1, stride = stride, bias = False),
-                nn.BatchNorm2d(num_channels[branch_index] * block.expansion, momentum = BN_MOMENTUM),
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(num_channels[branch_index] * block.expansion, momentum=BN_MOMENTUM),
             )
 
         layers = []
-        layers.append(block(self.num_inchannels[branch_index], num_channels[branch_index], stride, downsample))
+        layers.append(block(self.num_inchannels[branch_index],
+                            num_channels[branch_index], stride, downsample))
         self.num_inchannels[branch_index] = num_channels[branch_index] * block.expansion
         for i in range(1, num_blocks[branch_index]):
             layers.append(block(self.num_inchannels[branch_index], num_channels[branch_index]))
@@ -160,9 +161,9 @@ class HighResolutionModule(nn.Module):
             for j in range(num_branches):
                 if j > i:
                     fuse_layer.append(nn.Sequential(
-                        nn.Conv2d(num_inchannels[j], num_inchannels[i], 1, 1, 0, bias = False),
-                        nn.BatchNorm2d(num_inchannels[i], momentum = BN_MOMENTUM),
-                        nn.Upsample(scale_factor = 2 ** (j - i), mode = 'nearest')))
+                        nn.Conv2d(num_inchannels[j], num_inchannels[i], 1, 1, 0, bias=False),
+                        nn.BatchNorm2d(num_inchannels[i], momentum=BN_MOMENTUM),
+                        nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
                 elif j == i:
                     fuse_layer.append(None)
                 else:
@@ -171,13 +172,13 @@ class HighResolutionModule(nn.Module):
                         if k == i - j - 1:
                             num_outchannels_conv3x3 = num_inchannels[i]
                             conv3x3s.append(nn.Sequential(
-                                nn.Conv2d(num_inchannels[j], num_outchannels_conv3x3, 3, 2, 1, bias = False),
-                                nn.BatchNorm2d(num_outchannels_conv3x3, momentum = BN_MOMENTUM)))
+                                nn.Conv2d(num_inchannels[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                                nn.BatchNorm2d(num_outchannels_conv3x3, momentum=BN_MOMENTUM)))
                         else:
                             num_outchannels_conv3x3 = num_inchannels[j]
                             conv3x3s.append(nn.Sequential(
-                                nn.Conv2d(num_inchannels[j], num_outchannels_conv3x3, 3, 2, 1, bias = False),
-                                nn.BatchNorm2d(num_outchannels_conv3x3, momentum = BN_MOMENTUM),
+                                nn.Conv2d(num_inchannels[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                                nn.BatchNorm2d(num_outchannels_conv3x3, momentum=BN_MOMENTUM),
                                 nn.ReLU(False)))
                     fuse_layer.append(nn.Sequential(*conv3x3s))
             fuse_layers.append(nn.ModuleList(fuse_layer))

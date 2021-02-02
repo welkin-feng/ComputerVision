@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  plateau_lr.py
 
@@ -12,11 +12,12 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 class PlateauLR(ReduceLROnPlateau):
-    def __init__(self, optimizer, mode = 'min', factor = 0.1, patience = 10, cooldown = 0, min_lr = 0,
-                 warm_up_steps = 0, warm_up_lr_factor = 0, threshold = 1e-4, threshold_mode = 'rel',
-                 eps = 1e-8, verbose = False):
-        super(PlateauLR, self).__init__(optimizer, mode, factor, patience, verbose, threshold, threshold_mode,
-                                        cooldown, min_lr, eps)
+    def __init__(self, optimizer, mode='min', factor=0.1, patience=10, cooldown=0, min_lr=0,
+                 warm_up_steps=0, warm_up_lr_factor=0, threshold=1e-4, threshold_mode='rel',
+                 eps=1e-8, verbose=False):
+        super(PlateauLR, self).__init__(optimizer, mode=mode, factor=factor, patience=patience,
+                                        threshold=threshold, threshold_mode=threshold_mode,
+                                        cooldown=cooldown, min_lr=min_lr, eps=eps, verbose=verbose)
         self.init_lr = [group['lr'] for group in self.optimizer.param_groups]
         self.use_warm_up = False
         self.warm_up_lr = self.init_lr
@@ -34,7 +35,7 @@ class PlateauLR(ReduceLROnPlateau):
         """
         return self._last_lr
 
-    def step(self, metrics, epoch = None):
+    def step(self, metrics, epoch=None):
         if epoch is None:
             epoch = self.last_epoch + 1
         self.last_epoch = epoch
@@ -74,7 +75,7 @@ class PlateauLR(ReduceLROnPlateau):
 
     def load_state_dict(self, state_dict):
         self.__dict__.update(state_dict)
-        self._init_is_better(mode = self.mode, threshold = self.threshold, threshold_mode = self.threshold_mode)
+        self._init_is_better(mode=self.mode, threshold=self.threshold, threshold_mode=self.threshold_mode)
         if hasattr(self, '_last_lr'):
             for param_group, lr in zip(self.optimizer.param_groups, self._last_lr):
                 param_group['lr'] = lr

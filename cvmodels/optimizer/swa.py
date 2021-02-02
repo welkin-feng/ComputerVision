@@ -11,7 +11,7 @@ import warnings
 
 
 class SWA(torch.optim.Optimizer):
-    def __init__(self, optimizer, swa_start = None, swa_freq = None, swa_lr = None):
+    def __init__(self, optimizer, swa_start=None, swa_freq=None, swa_lr=None):
         r"""Implements Stochastic Weight Averaging (SWA).
         Stochastic Weight Averaging was proposed in `Averaging Weights Leads to
         Wider Optima and Better Generalization`_ by Pavel Izmailov, Dmitrii
@@ -195,7 +195,7 @@ class SWA(torch.optim.Optimizer):
                 p.data.copy_(buf)
                 buf.copy_(tmp)
 
-    def step(self, closure = None):
+    def step(self, closure=None):
         r"""Performs a single optimization step.
         In automatic mode also updates SWA running averages.
         """
@@ -255,7 +255,7 @@ class SWA(torch.optim.Optimizer):
         self.optimizer.add_param_group(param_group)
 
     @staticmethod
-    def bn_update(loader, model, device = None):
+    def bn_update(loader, model, device=None):
         r"""Updates BatchNorm running_mean, running_var buffers in the model.
         It performs one pass over data in `loader` to estimate the activation
         statistics for BatchNorm layers in the model.

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-Project Name:   ComputerVision 
+Project Name:   ComputerVision
 
 File Name:  mobilenet_v1.py
 
@@ -19,11 +19,11 @@ __all__ = ['mobilenet_v1']
 class DepthwiseSeparableConv(nn.Module):
     """  """
 
-    def __init__(self, in_channels, out_channels, kernel_size = 3, stride = 1, padding = 1, depth_multiplier = 1):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, depth_multiplier=1):
         """ Constructor for DepthwiseSeparableConv """
         super().__init__()
         self.dw_conv = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, groups = in_channels),
+            nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, groups=in_channels),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(),
             nn.Conv2d(in_channels, out_channels, 1),
@@ -38,7 +38,7 @@ class DepthwiseSeparableConv(nn.Module):
 class MobileNet(nn.Module):
     """  """
 
-    def __init__(self, num_classes, in_size = 224):
+    def __init__(self, num_classes, in_size=224):
         """ Constructor for MobileNet """
         super().__init__()
         self._init_model(num_classes, in_size)
@@ -47,24 +47,24 @@ class MobileNet(nn.Module):
     def _init_model(self, num_classes, in_size):
         final_size = in_size // 32
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 32, 3, stride = 2, padding = 1),
+            nn.Conv2d(3, 32, 3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             DepthwiseSeparableConv(32, 64, 3),
-            DepthwiseSeparableConv(64, 128, 3, stride = 2),
+            DepthwiseSeparableConv(64, 128, 3, stride=2),
             DepthwiseSeparableConv(128, 128, 3),
-            DepthwiseSeparableConv(128, 256, 3, stride = 2),
+            DepthwiseSeparableConv(128, 256, 3, stride=2),
             DepthwiseSeparableConv(256, 256, 3),
-            DepthwiseSeparableConv(256, 512, 3, stride = 2),
+            DepthwiseSeparableConv(256, 512, 3, stride=2),
             DepthwiseSeparableConv(512, 512, 3),
             DepthwiseSeparableConv(512, 512, 3),
             DepthwiseSeparableConv(512, 512, 3),
             DepthwiseSeparableConv(512, 512, 3),
             DepthwiseSeparableConv(512, 512, 3),
-            DepthwiseSeparableConv(512, 1024, 3, stride = 2),
+            DepthwiseSeparableConv(512, 1024, 3, stride=2),
             DepthwiseSeparableConv(1024, 1024, 3),
         )
-        self.avgpool = nn.AvgPool2d(kernel_size = final_size)
+        self.avgpool = nn.AvgPool2d(kernel_size=final_size)
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(1024, num_classes)
 
@@ -91,7 +91,7 @@ class MobileNet(nn.Module):
         return output
 
 
-def mobilenet_v1(num_classes, input_size = 224, **kwargs):
+def mobilenet_v1(num_classes, input_size=224, **kwargs):
     return MobileNet(num_classes, input_size)
 
 
